@@ -1,3 +1,7 @@
+from sys import platform
+if platform is not "darwin"
+    return
+
 from Foundation import *
 import asyncio
 import libdispatch
