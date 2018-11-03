@@ -1,5 +1,5 @@
 from sys import platform
-if platform is not "darwin"
+if platform is not "darwin":
     return
 
 from Foundation import *
