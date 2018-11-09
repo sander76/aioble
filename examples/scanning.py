@@ -1,12 +1,15 @@
 import asyncio
 from aioble import CentralManager
 
+def callback(args):
+    print(args)
+
 async def scan():
     cm = CentralManager()
     print('Scanning for BLE devices...')
     try:
         print('Starting')
-        await cm.start_scan()
+        await cm.start_scan(callback)
     finally:
         print('Stopping')
         await cm.stop_scan()
