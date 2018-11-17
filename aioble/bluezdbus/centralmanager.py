@@ -33,7 +33,7 @@ class CentralManagerBlueZDbus(CentralManager):
         self.devices = {}
         self._dbus = None
 
-    async def start_scan(self, callback, timeout_sec = 5):
+    async def start_scan(self, callback):
         # Set callback for new devices
         self._device_found_callback = callback
 
@@ -82,9 +82,9 @@ class CentralManagerBlueZDbus(CentralManager):
         # Add Devices that are already known
         await self._update_devices()
 
-    async def stop_scan(self, timeout_sec = 5):
+    async def stop_scan(self):
         """Stop Scan with timeout"""
-        await asyncio.sleep(timeout_sec)
+        raise NotImplementedError()
 
     async def power_on(self):
         """Power on BLE Adapter"""

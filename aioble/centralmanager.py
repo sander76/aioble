@@ -6,11 +6,11 @@ class CentralManager(object):
     def __init__(self, loop=None):
         self.loop = loop if loop else asyncio.get_event_loop()
 
-    async def start_scan(self, callback, timeout_sec):
+    async def start_scan(self, callback):
         """Start Scan with timeout"""
         raise NotImplementedError()
 
-    async def stop_scan(self, timeout_sec):
+    async def stop_scan(self):
         """Stop Scan with timeout"""
         raise NotImplementedError()
 
