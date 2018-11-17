@@ -2,7 +2,6 @@ import asyncio
 
 class CentralManager(object):
     """The Central Manager Base Class"""
-
     def __init__(self, loop=None):
         self.loop = loop if loop else asyncio.get_event_loop()
 
