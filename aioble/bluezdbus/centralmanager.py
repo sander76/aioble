@@ -24,7 +24,7 @@ _DISCOVERY_FILTER_ARGS = ['{"Transport": ["s", "le"]}']
 
 
 class CentralManagerBlueZDbus(CentralManager):
-    """The Central Manager Base Class"""
+    """The Central Manager Bluez Dbus Class"""
 
     def __init__(self, loop=None, **kwargs):
         super(CentralManagerBlueZDbus, self).__init__(loop)
