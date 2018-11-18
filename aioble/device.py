@@ -5,8 +5,10 @@ class Device(object):
     def __init__(self, address, loop=None):
         self.loop = loop if loop else asyncio.get_event_loop()
         self.address = address
-        #self.manager = manager
         self.properties = None
+        self.services = {}
+        self.characteristics = {}
+        self._notification_callbacks = {}
 
     async def connect(self):
         """Connect to device"""
@@ -14,6 +16,10 @@ class Device(object):
 
     async def disconnect(self):
         """Disconnect to device"""
+        raise NotImplementedError()
+
+    async def is_connected(self):
+        """Is Connected to device"""
         raise NotImplementedError()
 
     async def get_properties(self):
@@ -32,9 +38,14 @@ class Device(object):
         """Write Service Char"""
         raise NotImplementedError()
 
-    async def subscribe_to_notifications(self):
-        """Connect to device"""
+    async def start_notify(self):
+        """Start Notification Subscription"""
         raise NotImplementedError()
+
+    async def stop_notify(self):
+        """Stop Notification Subscription"""
+        raise NotImplementedError()
+
 
 class Service(object):
     """The Service Base Class"""
