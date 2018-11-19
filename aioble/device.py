@@ -7,7 +7,6 @@ class Device(object):
         self.address = address
         self.properties = None
         self.services = {}
-        self.characteristics = {}
         self._notification_callbacks = {}
 
     async def connect(self):
@@ -45,16 +44,3 @@ class Device(object):
     async def stop_notify(self):
         """Stop Notification Subscription"""
         raise NotImplementedError()
-
-
-class Service(object):
-    """The Service Base Class"""
-    def __init__(self, device, uuid):
-        self.device = device
-        self.characteristics = []
-    
-class Characteristic(object):
-    """The Characteristic Base Class"""
-    def __init__(self, service, uuid):
-        self.service = service
-        self.uuid = uuid

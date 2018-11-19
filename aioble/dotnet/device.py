@@ -2,6 +2,10 @@ import asyncio
 from aioble.device import Device
 
 from aioble.dotnet.utils import wrap_dotnet_task
+from aioble.dotnet.service import ServiceDotNet as Service
+from aioble.dotnet.characteristic import CharacteristicDotNet as Characteristic
+
+from Windows.Devices.Bluetooth.Advertisement import BluetoothLEAdvertisementWatcher
 
 from functools import wraps
 from typing import Callable, Any
@@ -26,9 +30,11 @@ class DeviceDotNet(Device):
         #UWP .NET 
         self._dotnet_task = None
         self._uwp_bluetooth = UWPBluetooth()
+        self._devices = {}
         
     async def connect(self):
         """Connect to device"""
+        # Initiate Connection
         self._dotnet_task = await wrap_dotnet_task(
             self._uwp_bluetooth.FromBluetoothAddressAsync(self.address),
             loop=self.loop,
@@ -39,7 +45,8 @@ class DeviceDotNet(Device):
 
         self._dotnet_task.ConnectionStatusChanged += _ConnectionStatusChanged_Handler
 
-        serv = await self.discover_services()
+        #Discover Services
+        await self.discover_services()
 
     async def disconnect(self):
         """Disconnect to device"""
@@ -67,34 +74,22 @@ class DeviceDotNet(Device):
                 self._uwp_bluetooth.GetGattServicesAsync(self._dotnet_task), loop=self.loop
             )
             if services.Status == GattCommunicationStatus.Success:
-                self.services = {s.Uuid.ToString(): s for s in services.Services}
+                self.services = {s.Uuid.ToString(): Service(
+                    device=s.Device,
+                    uuid=s.Uuid.ToString(),
+                    s_object=s) for s in services.Services}
             else:
                 raise Exception("Could not get GATT services.")
 
+            # Discover Characteristics for Each Service
             await asyncio.gather(
                 *[
-                    asyncio.ensure_future(self._discover_char(service), loop=self.loop)
+                    asyncio.ensure_future(service.discover_characteristics(), loop=self.loop)
                     for service_uuid, service in self.services.items()
                 ]
             )
             self._services_resolved = True
             return self.services
-
-    async def _discover_char(self, service):
-        print("Get Characteristics for {0}...".format(service.Uuid.ToString()))
-        char_results = await wrap_dotnet_task(
-            self._uwp_bluetooth.GetCharacteristicsAsync(service), loop=self.loop
-        )
-
-        if char_results.Status != GattCommunicationStatus.Success:
-            print(
-                "Could not fetch characteristics for {0}: {1}",
-                service.Uuid.ToString(),
-                char_results.Status,
-            )
-        else:
-            for characteristic in char_results.Characteristics:
-                self.characteristics[characteristic.Uuid.ToString()] = characteristic
 
     async def read_char(self):
         """Read Service Char"""
@@ -106,7 +101,11 @@ class DeviceDotNet(Device):
 
     async def start_notify(self, uuid, callback: Callable[[str, Any], Any], **kwargs):
         """Start Notification Subscription"""
-        characteristic = self.characteristics.get(str(uuid))
+        # Find the Characteristic object
+        for s_uuid, s in self.services.items():
+            for c_uuid, c in s.characteristics.items():
+                if str(uuid) == c_uuid:
+                    characteristic = c.c_object
 
         if self._notification_callbacks.get(str(uuid)):
             await self.stop_notify(uuid)
@@ -128,7 +127,7 @@ class DeviceDotNet(Device):
         """Stop Notification Subscription"""
         characteristic = self.characteristics.get(str(uuid))
         status = await wrap_dotnet_task(
-            self._bridge.StopNotify(characteristic), loop=self.loop
+            self._uwp_bluetooth.StopNotify(characteristic), loop=self.loop
         )
         if status != GattCommunicationStatus.Success:
             raise Exception(
@@ -142,15 +141,3 @@ def _notification_wrapper(func: Callable):
     def dotnet_notification_parser(sender: Any, data: Any):
         return func(sender.Uuid.ToString(), bytearray(data))
     return dotnet_notification_parser
-
-class Service(object):
-    """The Service Base Class"""
-    def __init__(self, device, uuid):
-        self.device = device
-        self.characteristics = []
-    
-class Characteristic(object):
-    """The Characteristic Base Class"""
-    def __init__(self, service, uuid):
-        self.service = service
-        self.uuid = uuid
