@@ -1,5 +1,7 @@
 # aioble
 
+#### Requires Python 3.6 for crossplatform support
+
 ## Install
 ```
 python setup.py install

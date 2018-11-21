@@ -1,5 +1,3 @@
-import asyncio
-import sys
 import json
 import re
 import dbussy as dbus
@@ -68,7 +66,7 @@ class CentralManagerBlueZDbus(CentralManager):
 
         # Call SetDiscovery Filter method with arguments
         message.append_objects(sig, *argobjs)
-        reply = await self._dbus.send_await_reply(message)
+        await self._dbus.send_await_reply(message)
 
         # Start Discovery
         self._dbus.add_filter(self.signal_parser, None)
