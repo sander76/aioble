@@ -77,14 +77,21 @@ class CentralManagerBlueZDbus(CentralManager):
         # Get method signature
         message = dbus.Message.new_method_call(destination = _BLUEZ_DESTINATION, path = _BLUEZ_OBJECT_PATH, iface = _ADAPTER_INTERFACE, method = _START_DISCOVERY_METHOD)
 
-        reply = await self._dbus.send_await_reply(message)
+        await self._dbus.send_await_reply(message)
 
         # Add Devices that are already known
         await self._update_devices()
 
     async def stop_scan(self):
-        """Stop Scan with timeout"""
-        raise NotImplementedError()
+        """Stop Scan"""
+        # Remove Signal Filter
+        # THIS IS SEG FAULTING?
+        # self._dbus.remove_filter(self.signal_parser, None)
+        self._dbus.bus_remove_match({"type" : "signal", "interface" : "org.freedesktop.DBus.ObjectManager", "member" : "InterfacesAdded", "interface" : "org.freedesktop.DBus.Properties", "member" : "PropertiesChanged", "arg0": "org.bluez.Device1"})
+        # Get method signature
+        message = dbus.Message.new_method_call(destination = _BLUEZ_DESTINATION, path = _BLUEZ_OBJECT_PATH, iface = _ADAPTER_INTERFACE, method = _STOP_DISCOVERY_METHOD)
+
+        await self._dbus.send_await_reply(message)
 
     async def power_on(self):
         """Power on BLE Adapter"""
@@ -106,9 +113,17 @@ class CentralManagerBlueZDbus(CentralManager):
 
     def _add_new_device(self, path, properties):
         """Add New Device Found"""
-        # Call Callback with new devices found
         if path not in self.devices:
             self.devices[path] = properties
+            # Add Address field from dbus path if no Address field exist
+            if "Address" not in self.devices[path]:
+                match = self._device_path_regex.match(path)
+                address = match.group(1)[1:].replace('_', ':').lower()
+                addressDict = {'Address': (type(address), address.upper())}
+                properties = {**properties, **addressDict}
+                #Update with Address field
+                self.devices[path] = properties
+            # Call Callback with new devices found
             if "Address" in self.devices[path] and "Alias" in self.devices[path]:
                 self._device_found_callback(self.devices[path]["Address"][1], self.devices[path]["Alias"][1])
             elif "Address" in self.devices[path]:
@@ -121,7 +136,7 @@ class CentralManagerBlueZDbus(CentralManager):
                 if message.interface == "org.bluez.Device1":
                     if message.path not in self.devices:
                         # Add New Device
-                        self.add_new_device(message.path, message.interface["org.bluez.Device1"])
+                        self._add_new_device(message.path, message.interface["org.bluez.Device1"])
                         
             elif message.member == 'PropertiesChanged':
                 for e in message.objects:
@@ -130,25 +145,10 @@ class CentralManagerBlueZDbus(CentralManager):
                     else:
                         properties = list(message.objects)[1]
                         if message.path not in self.devices:
-                            # Add New Device with updated property
-                            self._add_new_device(message.path, properties)
-
-                            # Add Address field from dbus path if no Address field exist
-                            if "Address" not in self.devices[message.path]:
-                                match = self._device_path_regex.match(message.path)
-                                address = match.group(1)[1:].replace('_', ':').lower()
-                                addressDict = {'Address' : (type(address), address.upper())}
-                                properties = {**properties, **addressDict}
-
-                            # Update Properties
+                            # Add New Device with new property
                             self._add_new_device(message.path, properties)
                         else:
-                            #Update Existing Device with changed properties
+                            # Update Existing Device with changed properties
                             self._add_new_device(message.path, {**self.devices[message.path], **properties})
-                    
-                    if "Address" in self.devices[message.path]:
-                        address = self.devices[message.path]["Address"]
-                    else:
-                        address = "<unknown>"
             
         return DBUS.HANDLER_RESULT_HANDLED
