@@ -1,6 +1,7 @@
 import asyncio
 from aioble.device import Device
 
+from aioble.dotnet.centralmanager import CentralManagerDotNet as CentralManager
 from aioble.dotnet.utils import wrap_dotnet_task
 from aioble.dotnet.service import ServiceDotNet as Service
 from aioble.dotnet.characteristic import CharacteristicDotNet as Characteristic
@@ -32,8 +33,25 @@ class DeviceDotNet(Device):
         self._uwp_bluetooth = UWPBluetooth()
         self._devices = {}
         
-    async def connect(self):
+    async def connect(self, timeout_sec=3):
         """Connect to device"""
+        _evt = asyncio.Event()
+
+        # THIS IS STILL NOT WORKING EVENT WISE
+        def _advertisement_received(address, name):
+            if address == hex(self.address):
+                # Found Device
+                _evt.set() # This event is never received by wait_for
+
+        cm = CentralManager(self.loop)
+        try:
+            await cm.start_scan(_advertisement_received)
+            await asyncio.wait_for(_evt.wait(), timeout_sec)
+        except asyncio.TimeoutError:
+            raise Exception("Device with address {0} was " "not found.".format(self.address))
+        finally:
+            await cm.stop_scan()
+
         # Initiate Connection
         self._dotnet_task = await wrap_dotnet_task(
             self._uwp_bluetooth.FromBluetoothAddressAsync(self.address),

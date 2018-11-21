@@ -17,11 +17,12 @@ async def connect():
         print("Connected: " + str(x))
         await cm.start_notify(TEST_CHARACTERISTIC, callback)
         await asyncio.sleep(5)
-    finally:
         print('Disconnecting')
         await cm.disconnect()
         x = await cm.is_connected()
         print("Connected: " + str(x))
+    except:
+        print("Failed to Connect")
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(connect())
