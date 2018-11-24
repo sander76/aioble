@@ -19,13 +19,13 @@ class CentralManagerCoreBluetooth(CentralManager):
         self.queue = libdispatch.dispatch_queue_create(b'CoreBluetooth Queue', libdispatch.DISPATCH_QUEUE_SERIAL)
         self._manager = CoreBluetooth.CBCentralManager.alloc().initWithDelegate_queue_options_(self, self.queue, None)
 
-    async def start_scan(self, callback, timeout_sec = 5):
+    async def start_scan(self, callback):
         if self._device_found_callback is not None:
             raise "Can't scan while already scanning"
         self._device_found_callback = callback
         libdispatch.dispatch_async(self.queue, self._queue_increment_scan_count)
 
-    async def stop_scan(self, timeout_sec):
+    async def stop_scan(self):
         self._device_found_callback = None
         libdispatch.dispatch_async(self.queue, self._queue_decrement_scan_count)
 
@@ -65,9 +65,3 @@ class CentralManagerCoreBluetooth(CentralManager):
         print("Notify Device Found")
         if self._device_found_callback is not None:
             self._device_found_callback(peripheral, peripheral.name())
-
-
-if __name__ == "__main__":
-    manager = CentralManagerCoreBluetooth()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(asyncio.sleep(10))
