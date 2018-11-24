@@ -9,6 +9,6 @@ setup(name='aioble',
       url='https://github.com/detectlabs/aioble',
       packages=find_packages(exclude=('examples')),
       package_data={
-        'aioble.dotnet': ['*.dll', ]
-    },
-     )
+          'aioble.dotnet': ['*.dll', ]
+      },
+      )
