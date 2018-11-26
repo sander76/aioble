@@ -4,6 +4,7 @@ import asyncio
 import functools
 import libdispatch
 import objc
+import weakref
 
 from aioble.centralmanager import CentralManager
 
@@ -41,11 +42,12 @@ def dispatched_to_loop(method=None):
 class CentralManagerCoreBluetooth(CentralManager):
     """Concrete implementation of the central manager protocol using CoreBluetooth API"""
 
-    def __init__(self, loop=None, **kwargs):
-        super(CentralManagerCoreBluetooth, self).__init__(loop)
+    def __init__(self, loop=None, *args, **kwargs):
+        super(CentralManagerCoreBluetooth, self).__init__(loop, *args, **kwargs)
         self._lock = asyncio.Lock()
         self._queue = libdispatch.dispatch_queue_create(b'CoreBluetooth Queue', libdispatch.DISPATCH_QUEUE_SERIAL)
-        self._manager = CoreBluetooth.CBCentralManager.alloc().initWithDelegate_queue_options_(self, self._queue, None)
+        self._delegate = _CentralManagerDelegate(self)
+        self._manager = CoreBluetooth.CBCentralManager.alloc().initWithDelegate_queue_options_(self._delegate, self._queue, None)
         self._queue_scan_count = 0
         self._queue_isScanning = False
         self._device_found_callback = None
@@ -91,18 +93,20 @@ class CentralManagerCoreBluetooth(CentralManager):
             self._manager.stopScan()
         self._queue_isScanning = self._manager.isScanning()
 
-    def centralManagerDidUpdateState_(self, manager):
-        print("Did Update State")
-        self._queue_update_scan_state_if_needed()
-
-    def centralManager_didDiscoverPeripheral_advertisementData_RSSI_(self, manager, peripheral, data, rssi):
-        print("Found Device {}", self.loop)
-        self.notify_device_found(peripheral)
-
     @dispatched_to_loop()
-    async def notify_device_found(self, peripheral):
+    async def _notify_device_found(self, peripheral):
         async with self._lock:
             print("Notify Device Found")
             if self._device_found_callback is not None:
                 self._device_found_callback(peripheral, peripheral.name())
 
+
+class _CentralManagerDelegate():
+    def __init__(self, manager : CentralManagerCoreBluetooth, *args, **kwargs):
+        self.managerref = weakref.ref(manager)
+
+    def centralManagerDidUpdateState_(self, manager):
+        self.managerref()._queue_update_scan_state_if_needed()
+
+    def centralManager_didDiscoverPeripheral_advertisementData_RSSI_(self, manager, peripheral, data, rssi):
+        self.managerref()._notify_device_found(peripheral)
