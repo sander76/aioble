@@ -1,5 +1,11 @@
 # aioble
 
+## Development Phases
+#### Phase 1 (Central Role) - Current
+#### Phase 2 (Peripheral Role)
+#### Phase 3 (Beacon Role)  
+
+
 #### Requires Python 3.6 for crossplatform support
 
 ## Install
