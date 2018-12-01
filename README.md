@@ -5,10 +5,8 @@
 #### Phase 2 (Peripheral Role) - Not Started 
 #### Phase 3 (Beacon Role) - Not Started
 
-
-##### Requires Python 3.6 for crossplatform support
-
 ## Install
+##### Requires Python 3.6 for crossplatform support
 ```
 python setup.py install
 ```
