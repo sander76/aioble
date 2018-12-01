@@ -26,7 +26,8 @@ class DeviceDotNet(Device):
     def __init__(self, address, loop=None):
         super(DeviceDotNet, self).__init__(loop)
         self.loop = loop if loop else asyncio.get_event_loop()
-        self.address = address
+        self.address = int(address.replace(":", ""), 16)
+        print(self.address)
         self.properties = None
         #UWP .NET 
         self._dotnet_task = None
@@ -109,13 +110,56 @@ class DeviceDotNet(Device):
             self._services_resolved = True
             return self.services
 
-    async def read_char(self):
+    async def read_char(self, uuid):
         """Read Service Char"""
-        raise NotImplementedError()
+        for s_uuid, s in self.services.items():
+            for c_uuid, c in s.characteristics.items():
+                if str(uuid) == c_uuid:
+                    characteristic = c.c_object
 
-    async def write_char(self):
+        if not characteristic:
+            raise Exception("Characteristic {0} was not found!".format(uuid))
+
+        read_results = await wrap_dotnet_task(
+            self._uwp_bluetooth.ReadCharacteristicValueAsync(characteristic), loop=self.loop
+        )
+        status, value = read_results.Item1, bytearray(read_results.Item2)
+        if status == GattCommunicationStatus.Success:
+            print("Read Characteristic {0} : {1}".format(uuid, value))
+        else:
+            raise Exception(
+                "Could not read characteristic value for {0}: {1}",
+                characteristic.Uuid.ToString(),
+                status,
+            )
+
+        return list(value)
+
+    async def write_char(self, uuid, data, response):
         """Write Service Char"""
-        raise NotImplementedError()
+        for s_uuid, s in self.services.items():
+            for c_uuid, c in s.characteristics.items():
+                if str(uuid) == c_uuid:
+                    characteristic = c.c_object
+
+        if not characteristic:
+            raise Exception("Characteristic {0} was not found!".format(uuid))
+
+        write_results = await wrap_dotnet_task(
+            self._uwp_bluetooth.WriteCharacteristicValueAsync(
+                characteristic, data, response
+            ),
+            loop=self.loop,
+        )
+        if write_results == GattCommunicationStatus.Success:
+            print("Write Characteristic {0} : {1}".format(uuid, data))
+        else:
+            raise Exception(
+                "Could not write value {0} to characteristic {1}: {2}",
+                data,
+                characteristic.Uuid.ToString(),
+                write_results,
+            )
 
     async def start_notify(self, uuid, callback: Callable[[str, Any], Any], **kwargs):
         """Start Notification Subscription"""
@@ -143,7 +187,12 @@ class DeviceDotNet(Device):
 
     async def stop_notify(self, uuid):
         """Stop Notification Subscription"""
-        characteristic = self.characteristics.get(str(uuid))
+        # Find the Characteristic object
+        for s_uuid, s in self.services.items():
+            for c_uuid, c in s.characteristics.items():
+                if str(uuid) == c_uuid:
+                    characteristic = c.c_object
+
         status = await wrap_dotnet_task(
             self._uwp_bluetooth.StopNotify(characteristic), loop=self.loop
         )
