@@ -1,8 +1,8 @@
 import asyncio
 from aioble import CentralManager
 
-def callback(address, name):
-    print("Address: " + address + " Name: " + name)
+def callback(identifier, name):
+    print("Identifier: " + identifier + " Name: " + name)
 
 async def scan():
     cm = CentralManager()

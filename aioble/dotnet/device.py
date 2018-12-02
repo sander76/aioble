@@ -23,24 +23,24 @@ from Windows.Foundation import TypedEventHandler
 
 class DeviceDotNet(Device):
     """The Device Base Class"""
-    def __init__(self, address, loop=None):
+    def __init__(self, identifier, loop=None):
         super(DeviceDotNet, self).__init__(loop)
         self.loop = loop if loop else asyncio.get_event_loop()
-        self.address = int(address.replace(":", ""), 16)
-        print(self.address)
+        self.identifier = int(identifier.replace(":", ""), 16)
+        print(self.identifier)
         self.properties = None
-        #UWP .NET 
+        #UWP .NET
         self._dotnet_task = None
         self._uwp_bluetooth = UWPBluetooth()
         self._devices = {}
-        
+
     async def connect(self, timeout_sec=3):
         """Connect to device"""
         _evt = asyncio.Event()
 
         # THIS IS STILL NOT WORKING EVENT WISE
-        def _advertisement_received(address, name):
-            if address == hex(self.address):
+        def _advertisement_received(identifier, name):
+            if identifier == hex(self.identifier):
                 # Found Device
                 _evt.set() # This event is never received by wait_for
 
@@ -49,13 +49,13 @@ class DeviceDotNet(Device):
             await cm.start_scan(_advertisement_received)
             await asyncio.wait_for(_evt.wait(), timeout_sec)
         except asyncio.TimeoutError:
-            raise Exception("Device with address {0} was " "not found.".format(self.address))
+            raise Exception("Device with identifier {0} was " "not found.".format(self.identifier))
         finally:
             await cm.stop_scan()
 
         # Initiate Connection
         self._dotnet_task = await wrap_dotnet_task(
-            self._uwp_bluetooth.FromBluetoothAddressAsync(self.address),
+            self._uwp_bluetooth.FromBluetoothAddressAsync(self.identifier),
             loop=self.loop,
         )
 

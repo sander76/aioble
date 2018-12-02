@@ -2,9 +2,9 @@ import asyncio
 
 class Device(object):
     """The Device Base Class"""
-    def __init__(self, address, loop=None):
+    def __init__(self, identifier, loop=None):
         self.loop = loop if loop else asyncio.get_event_loop()
-        self.address = address
+        self.identifier = identifier
         self.properties = None
         self.services = {}
         self._notification_callbacks = {}
