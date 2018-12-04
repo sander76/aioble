@@ -24,10 +24,14 @@ class ServiceBlueZDbus(Service):
     async def resolve_characteristics(self):
         # Connect to system bus
         self._dbus = await dbus.Connection.bus_get_async(DBUS.BUS_SYSTEM, private=False)
-        print("Get Characteristics for {0}...".format(self.uuid))
-        message = dbus.Message.new_method_call(destination=_BLUEZ_DESTINATION, path="/",
-                                               iface=_DBUS_OBJECT_MANAGER_INTERFACE,
-                                               method=_GET_MANAGED_OBJECTS_METHOD)
+        #print("Get Characteristics for {0}...".format(self.uuid))
+        message = dbus.Message.new_method_call \
+        (
+            destination=_BLUEZ_DESTINATION,
+            path="/",
+            iface=_DBUS_OBJECT_MANAGER_INTERFACE,
+            method=_GET_MANAGED_OBJECTS_METHOD
+        )
 
         # Dict of {Object Path, Dict of {String, Dict of {String, Variant}}} objects)
         reply = await self._dbus.send_await_reply(message)
