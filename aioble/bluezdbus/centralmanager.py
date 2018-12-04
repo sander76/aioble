@@ -83,7 +83,7 @@ class CentralManagerBlueZDbus(CentralManager):
     async def stop_scan(self):
         """Stop Scan"""
         # Remove Signal Filter
-        # THIS IS SEG FAULTING?
+        # THIS IS SIGSEGV
         # self._dbus.remove_filter(self.signal_parser, None)
         self._dbus.bus_remove_match({"type" : "signal", "interface" : "org.freedesktop.DBus.ObjectManager", "member" : "InterfacesAdded", "interface" : "org.freedesktop.DBus.Properties", "member" : "PropertiesChanged", "arg0": "org.bluez.Device1"})
         # Get method signature
