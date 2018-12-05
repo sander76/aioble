@@ -178,7 +178,7 @@ class DeviceDotNet(Device):
             for c_uuid, c in s.characteristics.items():
                 if str(uuid) == c_uuid:
                     characteristic = c.c_object
-
+        # THIS IS NOT CURRENTLY STOPPING NOTIFICATION IMMEDIATELY
         status = await wrap_dotnet_task(
             self._uwp_bluetooth.StopNotify(characteristic), loop=self.loop
         )
