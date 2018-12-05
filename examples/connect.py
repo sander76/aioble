@@ -26,7 +26,7 @@ async def connect_one():
         print('Connecting')
 
         try:
-            await asyncio.wait_for(cm_10.connect(), TIMEOUT)
+            await asyncio.wait_for(cm_10.connect(), TIMEOUT_SEC)
         except asyncio.TimeoutError:
             raise Exception("Device was not found.")
             print('Disconnecting')
@@ -64,7 +64,7 @@ async def connect_two():
 
         print('Connecting')
         tasks = [cm_10.connect(), cm_5.connect()]
-        done, pending = await asyncio.wait(tasks, timeout=TIMEOUT, return_when=asyncio.ALL_COMPLETED)
+        done, pending = await asyncio.wait(tasks, timeout=TIMEOUT_SEC, return_when=asyncio.ALL_COMPLETED)
 
         if pending:
             raise Exception("Could not connect to both devices.")
