@@ -6,23 +6,31 @@ TEST_ADDRESS_5 = 'D4:D2:34:E3:BC:C5'
 TEST_NOTIFY_CHARACTERISTIC = "ee840202-43b7-4f65-9fb9-d7b92d683e36"
 TEST_WRITE_CHARACTERISTIC = "ee840203-43b7-4f65-9fb9-d7b92d683e36"
 
+TIMEOUT_SEC = 5
+
 config = [100, 0, 100, 0, 200, 0, 56, 255, 200, 0, 56, 255, 0]
 WRITE_CHAR_TEST = bytearray(config)
 
 def notify_callback_10(sender, data):
     values = int.from_bytes(data, byteorder='little', signed=True)
-    print(f'{sender}: {values}')
+    print(f'10: {sender}: {values}')
 
 def notify_callback_5(sender, data):
     values = int.from_bytes(data, byteorder='little', signed=True)
-    print(f'{sender}: {values}')
+    print(f'5: {sender}: {values}')
 
 async def connect_one():
     try:
         cm_10 = Device(TEST_ADDRESS_10)
 
         print('Connecting')
-        await cm_10.connect()
+
+        try:
+            await asyncio.wait_for(cm_10.connect(), TIMEOUT_SEC)
+        except asyncio.TimeoutError:
+            raise Exception("Device was not found.")
+            print('Disconnecting')
+            await cm_10.disconnect()
 
         is_c_10 = await cm_10.is_connected()
         print(f'Connected_10: {is_c_10}')
@@ -55,8 +63,11 @@ async def connect_two():
         cm_5 = Device(TEST_ADDRESS_5)
 
         print('Connecting')
-        await cm_10.connect()
-        await cm_5.connect()
+        tasks = [cm_10.connect(), cm_5.connect()]
+        done, pending = await asyncio.wait(tasks, timeout=TIMEOUT_SEC, return_when=asyncio.ALL_COMPLETED)
+
+        if pending:
+            raise Exception("Could not connect to both devices.")
 
         is_c_10 = await cm_10.is_connected()
         is_c_5 = await cm_5.is_connected()
@@ -89,4 +100,4 @@ async def connect_two():
         print(f"Failed to Connect: {ex}")
 
 loop = asyncio.get_event_loop()
-loop.run_until_complete(connect_one())
+loop.run_until_complete(connect_two())
