@@ -13,11 +13,11 @@ WRITE_CHAR_TEST = bytearray(config)
 
 def notify_callback_10(sender, data):
     values = int.from_bytes(data, byteorder='little', signed=True)
-    print(f'{sender}: {values}')
+    print(f'10: {sender}: {values}')
 
 def notify_callback_5(sender, data):
     values = int.from_bytes(data, byteorder='little', signed=True)
-    print(f'{sender}: {values}')
+    print(f'5: {sender}: {values}')
 
 async def connect_one():
     try:

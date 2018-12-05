@@ -19,7 +19,7 @@ class ServiceDotNet(Service):
         self._uwp_bluetooth = UWPBluetooth()
 
     async def discover_characteristics(self):
-        print("Get Characteristics for {0}...".format(self.s_object.Uuid.ToString()))
+        #print("Get Characteristics for {0}...".format(self.s_object.Uuid.ToString()))
         char_results = await wrap_dotnet_task(
             self._uwp_bluetooth.GetCharacteristicsAsync(self.s_object), loop=self.loop
         )
