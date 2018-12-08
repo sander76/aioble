@@ -18,8 +18,6 @@ _START_DISCOVERY_METHOD = 'StartDiscovery'
 _STOP_DISCOVERY_METHOD = 'StopDiscovery'
 _SET_DISCOVERY_FILTER_METHOD = 'SetDiscoveryFilter'
 
-_DISCOVERY_FILTER_ARGS = ['{"Transport": ["s", "le"]}']
-
 
 class CentralManagerBlueZDbus(CentralManager):
     """The Central Manager Bluez Dbus Class"""
@@ -31,7 +29,7 @@ class CentralManagerBlueZDbus(CentralManager):
         self.devices = {}
         self._dbus = None
 
-    async def start_scan(self, callback):
+    async def start_scan(self, callback, service_uuids=[]):
         # Set callback for new devices
         self._device_found_callback = callback
 
@@ -59,13 +57,17 @@ class CentralManagerBlueZDbus(CentralManager):
         message = dbus.Message.new_method_call(destination = _BLUEZ_DESTINATION, path = _BLUEZ_OBJECT_PATH, iface = _ADAPTER_INTERFACE, method = _SET_DISCOVERY_FILTER_METHOD)
         sig = dbus.parse_signature(_set_discovery_filters_method.in_signature)
 
-        #sig = dbus.parse_signature("e{sv}")
+        discovery_filter = {'Transport': ['s', 'le']}
 
-        # Deserialize json string
-        argobjs = list(sig[i].validate(json.loads(_DISCOVERY_FILTER_ARGS[i])) for i in range(len(sig)))
+        if service_uuids:  # D-Bus doesn't like empty lists, it needs to guess the type
+            discovery_filter['UUIDs'] = service_uuids
+
+        discovery_filter = {**discovery_filter, 'UUIDs': ['as', service_uuids]}
 
         # Call SetDiscovery Filter method with arguments
-        message.append_objects(sig, *argobjs)
+        message.append_objects("a{sv}", discovery_filter)
+
+        #message.append_objects(sig, *argobjs)
         await self._dbus.send_await_reply(message)
 
         # Start Discovery
