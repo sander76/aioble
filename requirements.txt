@@ -1,3 +1,4 @@
 asyncio
 dbussy; sys_platform == "linux"
 pyobjc; sys_platform == "darwin"
+pythonnet; sys_platform == "windows"
