@@ -58,8 +58,6 @@ async def connect_one():
         is_c_10 = await cm_10.is_connected()
         print(f'Connected_10: {is_c_10}')
 
-        #await asyncio.Condition.wait_for(cm_10.is_services_resolved())
-
         print('Writing Char')
         await cm_10.write_char(TEST_WRITE_CHARACTERISTIC, WRITE_CHAR_TEST)
 
