@@ -33,6 +33,8 @@ class DeviceDotNet(Device):
         self._dotnet_task = None
         self._uwp_bluetooth = UWPBluetooth()
         self._devices = {}
+        self.services_resolved = None
+        self.is_services_resolved = False
 
     async def connect(self):
         """Connect to device"""
@@ -46,6 +48,7 @@ class DeviceDotNet(Device):
         def _ConnectionStatusChanged_Handler(sender, args):
             print("_ConnectionStatusChanged_Handler: " + args.ToString())
 
+        #Not Working for some reason?
         self._dotnet_task.ConnectionStatusChanged += _ConnectionStatusChanged_Handler
 
         #Discover Services
@@ -62,6 +65,12 @@ class DeviceDotNet(Device):
 
         else:
             return False
+
+    def _services_resolved(self):
+        # Notify User that Services have been Discovered
+        self.is_services_resolved = True
+        if self.services_resolved != None:
+            self.services_resolved()
 
     async def get_properties(self):
         """Get Device Properties"""
@@ -91,8 +100,7 @@ class DeviceDotNet(Device):
                     for service_uuid, service in self.services.items()
                 ]
             )
-            self._services_resolved = True
-            return self.services
+            self._services_resolved()
 
     async def read_char(self, uuid):
         """Read Service Char"""

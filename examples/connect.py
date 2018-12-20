@@ -19,9 +19,32 @@ def notify_callback_5(sender, data):
     values = int.from_bytes(data, byteorder='little', signed=True)
     print(f'5: {sender}: {values}')
 
+def connect_callback_10():
+    print("Connection to Device 10 Succeeded")
+
+def disconnect_callback_10():
+    print("Disconnection From Device 10 Succeeded")
+
+def services_resolved_10():
+    print("Services Resolved for Device 10")
+
+def connect_callback_5():
+    print("Connection to Device 5 Succeeded")
+
+def disconnect_callback_5():
+    print("Disconnection From Device 5 Succeeded")
+
+def services_resolved_5():
+    print("Services Resolved for Device 5")
+
+
 async def connect_one():
     try:
         cm_10 = Device(TEST_ADDRESS_10)
+
+        cm_10.connect_succeeded = connect_callback_10
+        cm_10.disconnect_succeeded = disconnect_callback_10
+        cm_10.services_resolved = services_resolved_10
 
         print('Connecting')
 
@@ -45,6 +68,7 @@ async def connect_one():
 
         print('Starting Notify')
         await cm_10.start_notify(TEST_NOTIFY_CHARACTERISTIC, notify_callback_10)
+
         await asyncio.sleep(5)
 
         print('Stopping Notify')
@@ -64,6 +88,14 @@ async def connect_two():
         cm_10 = Device(TEST_ADDRESS_10)
         cm_5 = Device(TEST_ADDRESS_5)
 
+        cm_10.connect_succeeded = connect_callback_10
+        cm_10.disconnect_succeeded = disconnect_callback_10
+        cm_10.services_resolved = services_resolved_10
+
+        cm_5.connect_succeeded = connect_callback_5
+        cm_5.disconnect_succeeded = disconnect_callback_5
+        cm_5.services_resolved = services_resolved_5
+
         print('Connecting')
         tasks = [cm_10.connect(), cm_5.connect()]
         done, pending = await asyncio.wait(tasks, timeout=TIMEOUT_SEC, return_when=asyncio.ALL_COMPLETED)
@@ -73,17 +105,20 @@ async def connect_two():
 
         is_c_10 = await cm_10.is_connected()
         is_c_5 = await cm_5.is_connected()
-        print(f'Connected_10: {is_c_10} Connected_3: {is_c_5}')
+        print(f'Connected_10: {is_c_10} Connected_5: {is_c_5}')
 
         print('Writing Char')
         await cm_10.write_char(TEST_WRITE_CHARACTERISTIC, WRITE_CHAR_TEST)
+        await cm_5.write_char(TEST_WRITE_CHARACTERISTIC, WRITE_CHAR_TEST)
 
         print('Reading Char')
         print(await cm_10.read_char(TEST_WRITE_CHARACTERISTIC))
+        print(await cm_5.read_char(TEST_WRITE_CHARACTERISTIC))
 
         print('Starting Notify')
         await cm_5.start_notify(TEST_NOTIFY_CHARACTERISTIC, notify_callback_5)
         await cm_10.start_notify(TEST_NOTIFY_CHARACTERISTIC, notify_callback_10)
+
         await asyncio.sleep(5)
 
         print('Stopping Notify')
@@ -96,7 +131,7 @@ async def connect_two():
 
         is_c_10 = await cm_10.is_connected()
         is_c_5 = await cm_5.is_connected()
-        print(f'Connected_10: {is_c_10} Connected_3: {is_c_5}')
+        print(f'Connected_10: {is_c_10} Connected_5: {is_c_5}')
 
     except Exception as ex:
         print(f"Failed to Connect: {ex}")

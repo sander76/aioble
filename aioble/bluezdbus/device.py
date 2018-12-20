@@ -34,6 +34,11 @@ class DeviceBlueZDbus(Device):
         self.properties = None
         self._notification_callbacks = {}
         self._dbus = None
+        self.connect_succeeded = None
+        self.disconnect_succeeded = None
+        self.services_resolved = None
+        self.is_services_resolved = False
+
 
     async def connect(self):
         """Connect to device"""
@@ -42,6 +47,13 @@ class DeviceBlueZDbus(Device):
 
         # Connect to system bus
         self._dbus = await dbus.Connection.bus_get_async(DBUS.BUS_SYSTEM, private = False, loop = self.loop)
+
+        # Define Signal Match
+        self.properties_rule = {"type": "signal", "interface": "org.freedesktop.DBus.Properties", "member": "PropertiesChanged",
+            "arg0": "org.bluez.Device1", "path": self._device_path}
+
+        # Add Match Callback for PropertiesChanged
+        await self._dbus.bus_add_match_action_async(self.properties_rule, self.properties_changed, None)
 
         # Assemble Connect Method Message
         message = dbus.Message.new_method_call \
@@ -55,16 +67,52 @@ class DeviceBlueZDbus(Device):
         # Connect
         await self._dbus.send_await_reply(message)
 
-        if await self.is_connected():
-            print("Connection successful.")
-        else:
-            raise Exception("Connection unsuccessful.")
+        while True:
+            # Resolve Services if they haven't been so already
+            services_resolved = await self.get_services_resolved()
+            if services_resolved:
+                break
+            await asyncio.sleep(0.02, loop=self.loop)
 
-        if not self.services and await self.is_services_resolved():
-            await self.discover_services()
+        await self.discover_services()
 
-    def signal_parser(self, connection, message, data):
-        """Interface Added Signal"""
+    def _connect_succeeded(self):
+        # Call User Callback
+        if self.connect_succeeded != None:
+            self.connect_succeeded()
+
+    def _disconnect_succeeded(self):
+        # Call User Callback
+        if self.disconnect_succeeded != None:
+            self.disconnect_succeeded()
+
+        # Remove Match Callback for PropertiesChanged
+        #await self._dbus.bus_remove_match_action_async(self.properties_rule, self.properties_changed, None)
+
+    def _services_resolved(self):
+        # Notify User that Services have been Discovered
+        self.is_services_resolved = True
+        if self.services_resolved != None:
+            self.services_resolved()
+
+    async def properties_changed(self, connection, message, data):
+        """Properties Changed Signal"""
+        if message.type == DBUS.MESSAGE_TYPE_SIGNAL:
+            if message.member == "PropertiesChanged":
+                if message.interface == "org.freedesktop.DBus.Properties":
+                    if 'Connected' in list(message.objects)[1]:
+                        if list(message.objects)[1]['Connected'][1]:
+                            self._connect_succeeded()
+                        else:
+                            self._disconnect_succeeded()
+                    if 'ServicesResolved' in list(message.objects)[1]:
+                        if list(message.objects)[1]['ServicesResolved'][1]:
+                            pass
+
+            return DBUS.HANDLER_RESULT_HANDLED
+
+    async def signal_parser(self, connection, message, data):
+        """Characteristic Properties Changed Signal"""
         if message.type == DBUS.MESSAGE_TYPE_SIGNAL:
             if message.member == "PropertiesChanged":
                 if message.interface == "org.freedesktop.DBus.Properties":
@@ -208,7 +256,8 @@ class DeviceBlueZDbus(Device):
         rule = {"type": "signal", "interface": "org.freedesktop.DBus.Properties", "member": "PropertiesChanged",
             "arg0": "org.bluez.GattCharacteristic1", "path": char_path}
 
-        await self._dbus.bus_remove_match_action_async(rule, self.signal_parser, None)
+        # THROWING SIGSEGV RIGHT NOW
+        #await self._dbus.bus_remove_match_action_async(rule, self.signal_parser, None)
 
         # Assemble Stop Notify Method Message
         message = dbus.Message.new_method_call \
@@ -221,7 +270,7 @@ class DeviceBlueZDbus(Device):
 
         await self._dbus.send_await_reply(message)
 
-    async def is_services_resolved(self):
+    async def get_services_resolved(self):
         """Is Services Resolved"""
 
         # Assemble Get Method Message
@@ -236,7 +285,7 @@ class DeviceBlueZDbus(Device):
         message.append_objects("s", 'ServicesResolved')
         reply = await self._dbus.send_await_reply(message)
 
-        return reply.expect_return_objects("v")[0]
+        return reply.expect_return_objects("v")[0][1]
 
     async def discover_services(self):
         """Discover Device Services"""
@@ -266,6 +315,9 @@ class DeviceBlueZDbus(Device):
 
             for service in self.services:
                 await service.resolve_characteristics()
+
+            # Notify user
+            self._services_resolved()
 
     async def _get_properties(self):
         """Get Properties"""
