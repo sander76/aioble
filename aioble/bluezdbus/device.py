@@ -86,9 +86,6 @@ class DeviceBlueZDbus(Device):
         if self.disconnect_succeeded != None:
             self.disconnect_succeeded()
 
-        # Remove Match Callback for PropertiesChanged
-        #await self._dbus.bus_remove_match_action_async(self.properties_rule, self.properties_changed, None)
-
     def _services_resolved(self):
         # Notify User that Services have been Discovered
         self.is_services_resolved = True
@@ -129,6 +126,9 @@ class DeviceBlueZDbus(Device):
 
     async def disconnect(self):
         """Disconnect to device"""
+
+        # Remove Match Callback for PropertiesChanged
+        await self._dbus.bus_remove_match_action_async(self.properties_rule, self.properties_changed, None)
 
         # Assemble Disonnect Method Message
         message = dbus.Message.new_method_call \
