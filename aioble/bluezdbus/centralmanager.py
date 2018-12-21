@@ -125,9 +125,9 @@ class CentralManagerBlueZDbus(CentralManager):
                 self.devices[path] = properties
             # Call Callback with new devices found
             if "Address" in self.devices[path] and "Alias" in self.devices[path]:
-                self._device_found_callback(self.devices[path]["Address"][1], self.devices[path]["Alias"][1])
+                self._device_found_callback(path, self.devices[path]["Alias"][1])
             elif "Address" in self.devices[path]:
-                self._device_found_callback(self.devices[path]["Address"][1], "<unknown>")
+                self._device_found_callback(path, "<unknown>")
 
     def signal_parser(self, connection, message, data):
         """Interface Added Signal"""

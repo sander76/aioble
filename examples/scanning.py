@@ -1,8 +1,8 @@
 import asyncio
 from aioble import CentralManager
 
-def callback(identifier, name):
-    print("Identifier: " + identifier + " Name: " + name)
+def callback(device, device_name):
+    print("device: " + device + " device_name: " + device_name)
 
 async def scan():
     try:
