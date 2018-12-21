@@ -256,8 +256,8 @@ class DeviceBlueZDbus(Device):
         rule = {"type": "signal", "interface": "org.freedesktop.DBus.Properties", "member": "PropertiesChanged",
             "arg0": "org.bluez.GattCharacteristic1", "path": char_path}
 
-        # THROWING SIGSEGV RIGHT NOW
-        #await self._dbus.bus_remove_match_action_async(rule, self.signal_parser, None)
+        # Remove Notify Callback
+        await self._dbus.bus_remove_match_action_async(rule, self.signal_parser, None)
 
         # Assemble Stop Notify Method Message
         message = dbus.Message.new_method_call \
