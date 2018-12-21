@@ -85,8 +85,7 @@ class CentralManagerBlueZDbus(CentralManager):
     async def stop_scan(self):
         """Stop Scan"""
         # Remove Signal Filter
-        # THIS IS SIGSEGV
-        # self._dbus.remove_filter(self.signal_parser, None)
+        self._dbus.remove_filter(self.signal_parser, None)
         self._dbus.bus_remove_match({"type" : "signal", "interface" : "org.freedesktop.DBus.ObjectManager", "member" : "InterfacesAdded", "interface" : "org.freedesktop.DBus.Properties", "member" : "PropertiesChanged", "arg0": "org.bluez.Device1"})
         # Get method signature
         message = dbus.Message.new_method_call(destination = _BLUEZ_DESTINATION, path = _BLUEZ_OBJECT_PATH, iface = _ADAPTER_INTERFACE, method = _STOP_DISCOVERY_METHOD)
@@ -125,9 +124,9 @@ class CentralManagerBlueZDbus(CentralManager):
                 self.devices[path] = properties
             # Call Callback with new devices found
             if "Address" in self.devices[path] and "Alias" in self.devices[path]:
-                self._device_found_callback(path, self.devices[path]["Alias"][1])
+                self._device_found_callback(path, self.devices[path]["Address"][1], self.devices[path]["Alias"][1])
             elif "Address" in self.devices[path]:
-                self._device_found_callback(path, "<unknown>")
+                self._device_found_callback(path, self.devices[path]["Address"][1], "<unknown>")
 
     def signal_parser(self, connection, message, data):
         """Interface Added Signal"""

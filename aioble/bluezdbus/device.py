@@ -27,10 +27,11 @@ _GET_MANAGED_OBJECTS_METHOD = 'GetManagedObjects'
 class DeviceBlueZDbus(Device):
     """The Device Base Class"""
 
-    def __init__(self, address, loop=None):
+    def __init__(self, device, loop=None):
         super(DeviceBlueZDbus, self).__init__(loop)
         self.loop = loop if loop else asyncio.get_event_loop()
-        self.address = address
+        self.address = '/org/bluez/%s/dev_%s' % ('hci0', device.replace(':', '_').upper())
+        self._device_path = device
         self.properties = None
         self._notification_callbacks = {}
         self._dbus = None
@@ -43,10 +44,11 @@ class DeviceBlueZDbus(Device):
     async def connect(self):
         """Connect to device"""
 
-        self._device_path = '/org/bluez/%s/dev_%s' % ('hci0', self.address.replace(':', '_').upper())
-
-        # Connect to system bus
-        self._dbus = await dbus.Connection.bus_get_async(DBUS.BUS_SYSTEM, private = False, loop = self.loop)
+        try:
+            # Connect to system bus
+            self._dbus = await dbus.Connection.bus_get_async(DBUS.BUS_SYSTEM, private = False, loop = self.loop)
+        except:
+            print("ERROR: Invalid Device")
 
         # Define Signal Match
         self.properties_rule = {"type": "signal", "interface": "org.freedesktop.DBus.Properties", "member": "PropertiesChanged",
