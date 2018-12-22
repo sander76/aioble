@@ -9,7 +9,7 @@ async def scan():
         cm = CentralManager()
         print('Scanning for BLE devices...')
         print('Starting')
-        await cm.start_scan(callback, [])
+        await cm.start_scan(callback)
         await asyncio.sleep(5)
         print('Stopping')
         await cm.stop_scan()

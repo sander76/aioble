@@ -26,8 +26,8 @@ class DeviceDotNet(Device):
     def __init__(self, identifier, loop=None):
         super(DeviceDotNet, self).__init__(loop)
         self.loop = loop if loop else asyncio.get_event_loop()
-        self.identifier = int(identifier.replace(":", ""), 16)
-        #print(self.identifier)
+        self.address = (identifier[-17:]).upper()
+        self.identifier = identifier
         self.properties = None
         #UWP .NET
         self._dotnet_task = None
@@ -41,7 +41,7 @@ class DeviceDotNet(Device):
 
         # Initiate Connection
         self._dotnet_task = await wrap_dotnet_task(
-            self._uwp_bluetooth.FromBluetoothAddressAsync(self.identifier),
+            self._uwp_bluetooth.BluetoothLEDeviceFromIdAsync(self.identifier),
             loop=self.loop,
         )
 

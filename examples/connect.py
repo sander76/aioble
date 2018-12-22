@@ -63,11 +63,8 @@ async def connect_one():
         cm_10 = CentralManager()
         await cm_10.start_scan(scan_callback_10)
 
-        while not d_10_device:
-           print("not found")
+        while d_10_device is None:
            await asyncio.sleep(.1)
-
-        print(d_10_device)
 
         await cm_10.stop_scan()
 
@@ -119,10 +116,13 @@ async def connect_two():
         cm_all = CentralManager()
         await cm_all.start_scan(scan_callback_all)
 
-        while not d_10_device and d_5_device:
+        while d_10_device is None and d_5_device is None:
             await asyncio.sleep(.1)
 
         await cm_all.stop_scan()
+
+        print(d_10_device)
+        print(d_5_device)
 
         # Create Devices
         d_10 = Device(d_10_device)
