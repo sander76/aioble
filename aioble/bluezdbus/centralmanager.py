@@ -27,11 +27,13 @@ class CentralManagerBlueZDbus(CentralManager):
         self.device = kwargs.get("device", "hci0")
         self._device_found_callback = None
         self.devices = {}
+        self.devices_notified = {}
         self._dbus = None
 
     async def start_scan(self, callback, service_uuids=[]):
         # Set callback for new devices
         self._device_found_callback = callback
+        self.service_uuids = service_uuids
 
         # Set device path regex
         self._device_path_regex = re.compile('^/org/bluez/' + 'hci0' + '/dev((_[A-Z0-9]{2}){6})$')
@@ -59,11 +61,6 @@ class CentralManagerBlueZDbus(CentralManager):
 
         discovery_filter = {'Transport': ['s', 'le']}
 
-        if service_uuids:  # D-Bus doesn't like empty lists, it needs to guess the type
-            discovery_filter['UUIDs'] = service_uuids
-
-        discovery_filter = {**discovery_filter, 'UUIDs': ['as', service_uuids]}
-
         # Call SetDiscovery Filter method with arguments
         message.append_objects("a{sv}", discovery_filter)
 
@@ -72,8 +69,10 @@ class CentralManagerBlueZDbus(CentralManager):
 
         # Start Discovery
         self._dbus.add_filter(self.signal_parser, None)
-        self._dbus.bus_add_match({"type" : "signal", "interface" : "org.freedesktop.DBus.ObjectManager", "member" : "InterfacesAdded", "interface" : "org.freedesktop.DBus.Properties", "member" : "PropertiesChanged", "arg0": "org.bluez.Device1"}) 
-        
+        self._dbus.bus_add_match({"type": "signal", "interface": "org.freedesktop.DBus.ObjectManager",
+                                  "member": "InterfacesAdded"})
+        self._dbus.bus_add_match({"type": "signal", "interface": "org.freedesktop.DBus.Properties",
+             "member": "PropertiesChanged","arg0": "org.bluez.Device1"})
         # Get method signature
         message = dbus.Message.new_method_call(destination = _BLUEZ_DESTINATION, path = _BLUEZ_OBJECT_PATH, iface = _ADAPTER_INTERFACE, method = _START_DISCOVERY_METHOD)
 
@@ -86,7 +85,10 @@ class CentralManagerBlueZDbus(CentralManager):
         """Stop Scan"""
         # Remove Signal Filter
         self._dbus.remove_filter(self.signal_parser, None)
-        self._dbus.bus_remove_match({"type" : "signal", "interface" : "org.freedesktop.DBus.ObjectManager", "member" : "InterfacesAdded", "interface" : "org.freedesktop.DBus.Properties", "member" : "PropertiesChanged", "arg0": "org.bluez.Device1"})
+        self._dbus.bus_remove_match({"type" : "signal", "interface" : "org.freedesktop.DBus.ObjectManager",
+                                     "member" : "InterfacesAdded"})
+        self._dbus.bus_remove_match({"type" : "signal", "interface" : "org.freedesktop.DBus.Properties",
+                                     "member" : "PropertiesChanged", "arg0": "org.bluez.Device1"})
         # Get method signature
         message = dbus.Message.new_method_call(destination = _BLUEZ_DESTINATION, path = _BLUEZ_OBJECT_PATH, iface = _ADAPTER_INTERFACE, method = _STOP_DISCOVERY_METHOD)
 
@@ -112,30 +114,50 @@ class CentralManagerBlueZDbus(CentralManager):
 
     def _add_new_device(self, path, properties):
         """Add New Device Found"""
-        if path not in self.devices:
+        if self.service_uuids:
             self.devices[path] = properties
+            if "UUIDs" in self.devices[path] and self.devices[path]["UUIDs"][1]:
+                if any(x in self.service_uuids for x in self.devices[path]["UUIDs"][1]):
+                    # Add Address field from dbus path if no Address field exist
+                    self._add_address(path, properties)
+
+                    # Notify user if they haven't been already
+                    self._notify(path, properties)
+        else:
+            self.devices[path] = properties
+
             # Add Address field from dbus path if no Address field exist
-            if "Address" not in self.devices[path]:
-                match = self._device_path_regex.match(path)
-                address = match.group(1)[1:].replace('_', ':').lower()
-                addressDict = {'Address': (type(address), address.upper())}
-                properties = {**properties, **addressDict}
-                #Update with Address field
-                self.devices[path] = properties
+            self._add_address(path, properties)
+
+            # Notify user if they haven't been already
+            self._notify(path, properties)
+
+
+    def _add_address(self, path, properties):
+        # Add address field if missing
+        if "Address" not in self.devices[path]:
+            match = self._device_path_regex.match(path)
+            address = match.group(1)[1:].replace('_', ':').lower()
+            addressDict = {'Address': (type(address), address.upper())}
+            properties = {**properties, **addressDict}
+            # Update with Address field
+            self.devices[path] = properties
+
+    def _notify(self, path, properties):
+        if path not in self.devices_notified:
             # Call Callback with new devices found
             if "Address" in self.devices[path] and "Alias" in self.devices[path]:
                 self._device_found_callback(path, self.devices[path]["Address"][1], self.devices[path]["Alias"][1])
             elif "Address" in self.devices[path]:
                 self._device_found_callback(path, self.devices[path]["Address"][1], "<unknown>")
+            self.devices_notified[path] = properties
 
     def signal_parser(self, connection, message, data):
         """Interface Added Signal"""
         if message.type == DBUS.MESSAGE_TYPE_SIGNAL :
             if message.member == "InterfacesAdded":
-                if message.interface == "org.bluez.Device1":
-                    if message.path not in self.devices:
-                        # Add New Device
-                        self._add_new_device(message.path, message.interface["org.bluez.Device1"])
+                # Add New Device
+                self._add_new_device(message.path, list(message.objects)[1]["org.bluez.Device1"])
                         
             elif message.member == 'PropertiesChanged':
                 for e in message.objects:
