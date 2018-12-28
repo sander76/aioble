@@ -1,12 +1,8 @@
 import asyncio
 from aioble.device import Device
 
-from aioble.dotnet.centralmanager import CentralManagerDotNet as CentralManager
 from aioble.dotnet.utils import wrap_dotnet_task
 from aioble.dotnet.service import ServiceDotNet as Service
-from aioble.dotnet.characteristic import CharacteristicDotNet as Characteristic
-
-from Windows.Devices.Bluetooth.Advertisement import BluetoothLEAdvertisementWatcher
 
 from functools import wraps
 from typing import Callable, Any
@@ -26,7 +22,7 @@ class DeviceDotNet(Device):
     def __init__(self, identifier, loop=None):
         super(DeviceDotNet, self).__init__(loop)
         self.loop = loop if loop else asyncio.get_event_loop()
-        self.address = (identifier[-17:]).upper()
+        self.address = hex(identifier)
         self.identifier = identifier
         self.properties = None
         #UWP .NET
@@ -41,7 +37,7 @@ class DeviceDotNet(Device):
 
         # Initiate Connection
         self._dotnet_task = await wrap_dotnet_task(
-            self._uwp_bluetooth.BluetoothLEDeviceFromIdAsync(self.identifier),
+            self._uwp_bluetooth.FromBluetoothAddressAsync(self.identifier),
             loop=self.loop,
         )
 

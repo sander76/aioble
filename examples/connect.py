@@ -116,7 +116,7 @@ async def connect_two():
         cm_all = CentralManager()
         await cm_all.start_scan(scan_callback_all)
 
-        while d_10_device is None and d_5_device is None:
+        while d_10_device is None or d_5_device is None:
             await asyncio.sleep(.1)
 
         await cm_all.stop_scan()
