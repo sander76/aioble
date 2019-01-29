@@ -6,38 +6,8 @@ import libdispatch
 import objc
 import weakref
 
+import aioble.corebluetooth.util as util
 from aioble.centralmanager import CentralManager
-
-def dispatched_to_queue(method=None, wait=True):
-    def func(method):
-        @functools.wraps(method)
-        async def wrapper(self, *args, **kwargs):
-            if wait:
-                loop = asyncio.get_event_loop()
-                future = loop.create_future()
-                def queue_block():
-                    result = method(self, *args, **kwargs)
-                    def loop_block():
-                        future.set_result(result)
-                    loop.call_soon_threadsafe(loop_block)
-                libdispatch.dispatch_async(self._queue, queue_block)
-                return await future
-            else:
-                def queue_block():
-                    method(self, *args, **kwargs)
-                libdispatch.dispatch_async(self._queue, queue_block)
-                return None
-        return wrapper
-    return func
-
-def dispatched_to_loop(method=None):
-    def func(method):
-        @functools.wraps(method)
-        def wrapper(self, *args, **kwargs):
-            asyncio.run_coroutine_threadsafe(functools.partial(method, self, *args, **kwargs)(), self.loop)
-        return wrapper
-    return func
-
 
 class CentralManagerCoreBluetooth(CentralManager):
     """Concrete implementation of the central manager protocol using CoreBluetooth API"""
@@ -65,18 +35,18 @@ class CentralManagerCoreBluetooth(CentralManager):
             self._device_found_callback = None
             await self._decrement_scan_count()
 
-    @dispatched_to_queue()
+    @util.dispatched_to_queue()
     def _increment_scan_count(self):
         self._queue_scan_count = self._queue_scan_count + 1
         self._queue_update_scan_state_if_needed()
 
-    @dispatched_to_queue()
+    @util.dispatched_to_queue()
     def _decrement_scan_count(self):
         if self._queue_scan_count > 0:
             self._queue_scan_count = self._queue_scan_count - 1
             self._queue_update_scan_state_if_needed()
 
-    @dispatched_to_queue()
+    @util.dispatched_to_queue()
     def _update_scan_state_if_needed(self):
         self._queue_update_scan_state_if_needed
 
@@ -93,7 +63,7 @@ class CentralManagerCoreBluetooth(CentralManager):
             self._manager.stopScan()
         self._queue_isScanning = self._manager.isScanning()
 
-    @dispatched_to_loop()
+    @util.dispatched_to_loop()
     async def _notify_device_found(self, peripheral):
         async with self._lock:
             print("Notify Device Found")
