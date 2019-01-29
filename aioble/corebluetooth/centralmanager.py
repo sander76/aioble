@@ -9,11 +9,11 @@ import weakref
 import aioble.corebluetooth.util as util
 from aioble.centralmanager import CentralManager
 
-class CentralManagerCoreBluetooth(CentralManager):
+class CoreBluetoothCentralManager(CentralManager):
     """Concrete implementation of the central manager protocol using CoreBluetooth API"""
 
     def __init__(self, loop=None, *args, **kwargs):
-        super(CentralManagerCoreBluetooth, self).__init__(loop, *args, **kwargs)
+        super(CoreBluetoothCentralManager, self).__init__(loop, *args, **kwargs)
         self._lock = asyncio.Lock()
         self._queue = libdispatch.dispatch_queue_create(b'CoreBluetooth Queue', libdispatch.DISPATCH_QUEUE_SERIAL)
         self._delegate = _CentralManagerDelegate(self)
