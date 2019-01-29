@@ -6,11 +6,9 @@ pytestmark = pytest.mark.asyncio
 
 devices = []
 
-def callback(device, device_name):
-    print("Callback: Found device {}", device)
+def callback(device):
+    print("Callback: Found device: ", device.identifier, device.name)
     devices.append(device)
-    assert device is None
-    assert device_name is None
 
 async def test_centralmanager(event_loop: asyncio.AbstractEventLoop):
     manager = CentralManager()

@@ -2,12 +2,27 @@ import asyncio
 
 class Device(object):
     """The Device Base Class"""
-    def __init__(self, identifier, loop=None):
+    def __init__(self, loop=None, *args, **kwargs):
         self.loop = loop if loop else asyncio.get_event_loop()
-        self.identifier = identifier
         self.properties = None
         self.services = {}
         self._notification_callbacks = {}
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return f"Device(identifier={self.identifier}, name={self.name})"
+
+    @property
+    def identifier(self):
+        """An identifier that uniquely identifies this device"""
+        raise NotImplementedError()
+
+    @property
+    def name(self):
+        """A user friendly name for the device device"""
+        raise NotImplementedError()
 
     async def connect(self):
         """Connect to device"""

@@ -8,6 +8,7 @@ import weakref
 
 import aioble.corebluetooth.util as util
 from aioble.centralmanager import CentralManager
+from aioble.corebluetooth.device import CoreBluetoothDevice
 
 class CoreBluetoothCentralManager(CentralManager):
     """Concrete implementation of the central manager protocol using CoreBluetooth API"""
@@ -67,8 +68,11 @@ class CoreBluetoothCentralManager(CentralManager):
     async def _notify_device_found(self, peripheral):
         async with self._lock:
             if self._device_found_callback is not None:
-                self._device_found_callback(peripheral, peripheral.name())
-
+                dev = self.devices.get(peripheral.identifier().UUIDString())
+                device = CoreBluetoothDevice(manager=self, peripheral=peripheral, queue=self._queue)
+                if dev is None:
+                    self.devices[device.identifier] = device
+                    self._device_found_callback(device)
 
     # CBCentralManagerDelegate
 

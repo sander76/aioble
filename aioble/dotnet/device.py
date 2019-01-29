@@ -32,6 +32,14 @@ class DeviceDotNet(Device):
         self.services_resolved = None
         self.is_services_resolved = False
 
+    @property
+    def identifier(self):
+        return self._identifier
+
+    @property
+    def name(self):
+        raise NotImplementedError()
+
     async def connect(self):
         """Connect to device"""
 
