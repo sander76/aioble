@@ -68,11 +68,19 @@ class CoreBluetoothCentralManager(CentralManager):
     async def _notify_device_found(self, peripheral):
         async with self._lock:
             if self._device_found_callback is not None:
-                dev = self.devices.get(peripheral.identifier().UUIDString())
-                device = CoreBluetoothDevice(manager=self, peripheral=peripheral, queue=self._queue)
-                if dev is None:
+                device = self.devices.get(peripheral.identifier().UUIDString())
+                if device is None:
+                    device = CoreBluetoothDevice(manager=self, peripheral=peripheral, queue=self._queue)
                     self.devices[device.identifier] = device
-                    self._device_found_callback(device)
+                    if asyncio.iscoroutinefunction(self._device_found_callback):
+                        await self._device_found_callback(device)
+                    else:
+                        self._device_found_callback(device)
+
+    @util.dispatched_to_loop()
+    async def _peripheral_did_connect(self, peripheral):
+        device = self.devices.get(peripheral.identifier().UUIDString())
+        device._did_connect()
 
     # CBCentralManagerDelegate
 
@@ -81,3 +89,6 @@ class CoreBluetoothCentralManager(CentralManager):
 
     def centralManager_didDiscoverPeripheral_advertisementData_RSSI_(self, manager, peripheral, data, rssi):
         self._notify_device_found(peripheral)
+
+    def centralManager_didConnectPeripheral_(self, manager, peripheral):
+        self._peripheral_did_connect(peripheral)

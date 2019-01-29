@@ -1,6 +1,7 @@
 import CoreBluetooth
 import Foundation
 import objc
+import asyncio
 
 import aioble.corebluetooth.util as util
 from aioble.device import Device
@@ -15,6 +16,8 @@ class CoreBluetoothDevice(Device):
         self._queue = queue
         self._identifier = self._peripheral.identifier().UUIDString()
 
+        self._did_connect_event = asyncio.Event()
+
     # Public
 
     @property
@@ -27,7 +30,8 @@ class CoreBluetoothDevice(Device):
 
     async def connect(self):
         """Connect to device"""
-        raise NotImplementedError()
+        await self._connect()
+        await self._did_connect_event.wait()
 
     async def disconnect(self):
         """Disconnect to device"""
@@ -62,6 +66,14 @@ class CoreBluetoothDevice(Device):
         raise NotImplementedError()
 
     # Private
+
+    @util.dispatched_to_queue(wait=False)
+    def _connect(self):
+        self._manager._cbmanager.connectPeripheral_options_(self._peripheral, None)
+
+    @util.dispatched_to_loop()
+    def _did_connect(self):
+        self._did_connect_event.set()
 
     # CBPeripheralDelegate
 
