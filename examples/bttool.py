@@ -23,6 +23,8 @@ async def main():
             print(f'Connecting to {device}...')
             try:
                 await asyncio.wait_for(device.connect(), 5)
+                await asyncio.wait_for(device.discover_services(), 5)
+
             except:
                 print("exception")
             print(f'Did Connect')

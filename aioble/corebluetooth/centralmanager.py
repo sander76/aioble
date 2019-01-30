@@ -52,7 +52,7 @@ class CoreBluetoothCentralManager(CentralManager):
 
     @util.dispatched_to_queue()
     def _update_scan_state_if_needed(self):
-        self._queue_update_scan_state_if_needed
+        self._queue_update_scan_state_if_needed()
 
     def _queue_update_scan_state_if_needed(self):
         if self._cbmanager.state() is not CoreBluetooth.CBManagerStatePoweredOn:
@@ -80,7 +80,14 @@ class CoreBluetoothCentralManager(CentralManager):
     @util.dispatched_to_loop()
     async def _peripheral_did_connect(self, peripheral):
         device = self.devices.get(peripheral.identifier().UUIDString())
-        device._did_connect()
+        if device:
+            device._did_connect()
+
+    @util.dispatched_to_loop()
+    async def _peripheral_did_disconnect(self, peripheral):
+        device = self.devices.get(peripheral.identifier().UUIDString())
+        if device:
+            device._did_disconnect()
 
     # CBCentralManagerDelegate
 
@@ -92,3 +99,6 @@ class CoreBluetoothCentralManager(CentralManager):
 
     def centralManager_didConnectPeripheral_(self, manager, peripheral):
         self._peripheral_did_connect(peripheral)
+
+    def centralManager_didDisconnectPeripheral_(self, manager, peripheral):
+        self._peripheral_did_disconnect(peripheral)

@@ -17,6 +17,8 @@ class CoreBluetoothDevice(Device):
         self._identifier = self._peripheral.identifier().UUIDString()
 
         self._did_connect_event = asyncio.Event()
+        self._did_disconnect_event = asyncio.Event()
+        self._did_discover_services_event = asyncio.Event()
 
     # Public
 
@@ -35,7 +37,8 @@ class CoreBluetoothDevice(Device):
 
     async def disconnect(self):
         """Disconnect to device"""
-        raise NotImplementedError()
+        await self._disconnect()
+        await self._did_disconnect_event.wait()
 
     async def is_connected(self):
         """Is Connected to device"""
@@ -47,7 +50,10 @@ class CoreBluetoothDevice(Device):
 
     async def discover_services(self):
         """Discover Device Services"""
-        raise NotImplementedError()
+        await self._discover_services()
+        print('before event')
+        await self._did_discover_services_event.wait()
+        print('after event')
 
     async def read_char(self):
         """Read Service Char"""
@@ -75,6 +81,24 @@ class CoreBluetoothDevice(Device):
     def _did_connect(self):
         self._did_connect_event.set()
 
+    @util.dispatched_to_queue(wait=False)
+    def _disconnect(self):
+        self._manager._cbmanager.cancelPeripheralConnection_(self._peripheral)
+
+    @util.dispatched_to_loop()
+    def _did_disconnect(self):
+        self._did_connect_event.set()
+
+    @util.dispatched_to_queue(wait=False)
+    def _discover_services(self):
+        self._peripheral.discoverServices_(None)
+
+    @util.dispatched_to_loop()
+    def _did_discover_services(self):
+        print(f'before {self._did_discover_services_event}')
+        self._did_discover_services_event.set()
+        print(f'after {self._did_discover_services_event}')
+
     # CBPeripheralDelegate
 
     def peripheralDidUpdateName_(self, peripheral):
@@ -90,7 +114,9 @@ class CoreBluetoothDevice(Device):
         pass
 
     def peripheral_didDiscoverServices_(self, peripheral, error):
-        pass
+        print(f'services : {peripheral.services()} {error}')
+        # TODO: pass error up the chain. Return it from the discover_services() call?
+        self._did_discover_services()
 
     def peripheral_didDiscoverIncludedServices_error_(self, peripheral, service, error):
         pass
