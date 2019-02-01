@@ -1,4 +1,4 @@
 asyncio
-dbussy; sys_platform == "linux"
+git+git://github.com/ldo/dbussy.git; sys_platform == "linux"
 pyobjc; sys_platform == "darwin"
 pythonnet; sys_platform == "windows"
