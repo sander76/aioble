@@ -55,3 +55,17 @@ def dispatched_to_loop(method=None):
             asyncio.run_coroutine_threadsafe(functools.partial(method, self, *args, **kwargs)(), self.loop)
         return wrapper
     return func
+
+
+class NSErrorException(Exception):
+    def __init__(self, nserror):
+        self.domain = nserror.domain()
+        self.code = nserror.code()
+        self.userInfo = nserror.userInfo()
+        self.error = nserror
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return f"NSError(domain={self.domain}, code={self.code}, userInfo={self.userInfo})"

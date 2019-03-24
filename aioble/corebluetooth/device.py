@@ -14,7 +14,10 @@ class CoreBluetoothDevice(Device):
         self._peripheral = peripheral
         self._peripheral.setDelegate_(self)
         self._queue = queue
+
+        # Peripheral Properties
         self._identifier = self._peripheral.identifier().UUIDString()
+        self._services = None
 
         self._did_connect_event = asyncio.Event()
         self._did_disconnect_event = asyncio.Event()
@@ -50,10 +53,11 @@ class CoreBluetoothDevice(Device):
 
     async def discover_services(self):
         """Discover Device Services"""
-        await self._discover_services()
-        print('before event')
-        await self._did_discover_services_event.wait()
-        print('after event')
+        if self._services is None:
+            self._discover_services_future = asyncio.Future()
+            await self._discover_services()
+            self._services = await self._discover_services_future
+        return self._services
 
     async def read_char(self):
         """Read Service Char"""
@@ -78,7 +82,7 @@ class CoreBluetoothDevice(Device):
         self._manager._cbmanager.connectPeripheral_options_(self._peripheral, None)
 
     @util.dispatched_to_loop()
-    def _did_connect(self):
+    async def _did_connect(self):
         self._did_connect_event.set()
 
     @util.dispatched_to_queue(wait=False)
@@ -86,7 +90,7 @@ class CoreBluetoothDevice(Device):
         self._manager._cbmanager.cancelPeripheralConnection_(self._peripheral)
 
     @util.dispatched_to_loop()
-    def _did_disconnect(self):
+    async def _did_disconnect(self):
         self._did_connect_event.set()
 
     @util.dispatched_to_queue(wait=False)
@@ -94,10 +98,11 @@ class CoreBluetoothDevice(Device):
         self._peripheral.discoverServices_(None)
 
     @util.dispatched_to_loop()
-    def _did_discover_services(self):
-        print(f'before {self._did_discover_services_event}')
-        self._did_discover_services_event.set()
-        print(f'after {self._did_discover_services_event}')
+    async def _did_discover_services(self, services, error):
+        if services is None:
+            self._discover_services_future.set_exception(util.NSErrorException(error))
+        else:
+            self._discover_services_future.set_result(services)
 
     # CBPeripheralDelegate
 
@@ -114,9 +119,7 @@ class CoreBluetoothDevice(Device):
         pass
 
     def peripheral_didDiscoverServices_(self, peripheral, error):
-        print(f'services : {peripheral.services()} {error}')
-        # TODO: pass error up the chain. Return it from the discover_services() call?
-        self._did_discover_services()
+        self._did_discover_services(peripheral.services(), error)
 
     def peripheral_didDiscoverIncludedServices_error_(self, peripheral, service, error):
         pass

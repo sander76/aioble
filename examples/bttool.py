@@ -2,8 +2,9 @@ import aioble
 import asyncio
 import argparse
 import aioble
+from pprint import pprint
 
-devices = []
+device = None
 
 async def main():
     parser = argparse.ArgumentParser()
@@ -14,24 +15,25 @@ async def main():
 
     cm = aioble.CentralManager()
 
-    found_device = asyncio.Event()
+    found_device = asyncio.Future()
 
-    async def did_find_device(device):
+    async def did_find_device_callback(device):
         if device.name.startswith(args.device_name_prefix):
-            global devices
-            devices.append(device)
             print(f'Connecting to {device}...')
             try:
                 await asyncio.wait_for(device.connect(), 5)
-                await asyncio.wait_for(device.discover_services(), 5)
+            except Exception as e:
+                print(f'error: {e}')
+            found_device.set_result(device)
 
-            except:
-                print("exception")
-            print(f'Did Connect')
-            found_device.set()
-
-    await cm.start_scan(did_find_device)
-    await asyncio.wait_for(found_device.wait(), 5)
+    await cm.start_scan(did_find_device_callback)
+    global device
+    device = await asyncio.wait_for(found_device, 5)
+    services = await asyncio.wait_for(device.discover_services(), 5)
+    for service in services:
+        print(f'service found: {service}')
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
+
+pprint(globals())
