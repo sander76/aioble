@@ -65,7 +65,7 @@ class CoreBluetoothDevice(Device):
         """Get Device Properties"""
         raise NotImplementedError()
 
-    async def discover_services(self):
+    async def discover_services(self) -> List[CoreBluetoothService]:
         """Discover Device Services"""
         if self._services_by_identifier is None:
             self._discover_services_future = asyncio.Future()
@@ -73,6 +73,10 @@ class CoreBluetoothDevice(Device):
             cbservices = await self._discover_services_future
             self._services_by_identifier = {cbservice.UUID().UUIDString(): CoreBluetoothService(self, cbservice, self._queue) for cbservice in cbservices}
         return self._services_by_identifier.values()
+
+    async def service_with_identifier(self, identifier: str) -> CoreBluetoothService:
+        await self.discover_services()
+        return self._services_by_identifier.get(identifier)
 
     async def read_char(self):
         """Read Service Char"""
@@ -126,6 +130,19 @@ class CoreBluetoothDevice(Device):
         if service is not None:
             service._did_discover_characteristics(cbcharacteristics, error)
 
+    @util.dispatched_to_loop()
+    async def _did_update_value_for_characteristic(self, cbcharacteristic : CoreBluetooth.CBCharacteristic, error : Foundation.NSError):
+        cbservice = cbcharacteristic.service()
+        service = self._services_by_identifier.get(cbservice.UUID().UUIDString())
+        if service is None:
+            return
+
+        char = await service.characteristic_with_identifier(cbcharacteristic.UUID().UUIDString())
+        if char is None:
+            return
+
+        char._did_update_value(error)
+
     # CBPeripheralDelegate
 
     def peripheralDidUpdateName_(self, peripheral):
@@ -150,7 +167,7 @@ class CoreBluetoothDevice(Device):
         self._did_discover_characteristics_for_service(service, service.characteristics(), error)
 
     def peripheral_didUpdateValueForCharacteristic_error_(self, peripheral, characteristic, error):
-        pass
+        self._did_update_value_for_characteristic(characteristic, error)
 
     def peripheral_didWriteValueForCharacteristic_error_(self, peripheral, characteristic, error):
         pass

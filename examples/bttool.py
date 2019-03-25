@@ -34,7 +34,7 @@ async def main():
         print(f'service found: {service}')
         characteristics = await asyncio.wait_for(service.discover_characteristics(), 5)
         for characteristic in characteristics:
-            print(f'\tcharacteristic: {characteristic}')
+            print(f'\tcharacteristic: {characteristic} -> {await characteristic.read_value()}')
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
