@@ -2,26 +2,34 @@ import CoreBluetooth
 import Foundation
 import objc
 import asyncio
+from typing import List
 
 import aioble.corebluetooth.util as util
 from aioble.device import Device
+from aioble.corebluetooth.centralmanager import CoreBluetoothCentralManager
+
+CoreBluetoothService = None
 
 class CoreBluetoothDevice(Device):
     """The CoreBluetooth concrete device implementation"""
-    def __init__(self, manager, peripheral : CoreBluetooth.CBPeripheral, queue, loop=None, *args, **kwargs):
-        super(CoreBluetoothDevice, self).__init__(loop, *args, **kwargs)
-        self._manager = manager
-        self._peripheral = peripheral
-        self._peripheral.setDelegate_(self)
+    def __init__(self, manager: CoreBluetoothCentralManager, cbperipheral : CoreBluetooth.CBPeripheral, queue, *args, **kwargs):
+        super(CoreBluetoothDevice, self).__init__(manager, *args, **kwargs)
+        self._cbmanager = manager._cbmanager
+        self._cbperipheral = cbperipheral
+        self._cbperipheral.setDelegate_(self)
         self._queue = queue
 
-        # Peripheral Properties
-        self._identifier = self._peripheral.identifier().UUIDString()
-        self._services = None
+        self._identifier = self._cbperipheral.identifier().UUIDString()
 
-        self._did_connect_event = asyncio.Event()
-        self._did_disconnect_event = asyncio.Event()
-        self._did_discover_services_event = asyncio.Event()
+        # import of services is deferred due to circular dependency
+        from aioble.corebluetooth.service import CoreBluetoothService as _service
+        global CoreBluetoothService
+        CoreBluetoothService = _service
+        self._services_by_identifier = None
+
+        self._did_connect_event = None
+        self._did_disconnect_event = None
+        self._discover_services_future = None
 
     # Public
 
@@ -31,21 +39,27 @@ class CoreBluetoothDevice(Device):
 
     @property
     def name(self):
-        return self._peripheral.name()
+        return self._cbperipheral.name()
 
     async def connect(self):
         """Connect to device"""
+        if self._did_connect_event is None:
+            self._did_connect_event = asyncio.Event()
         await self._connect()
         await self._did_connect_event.wait()
+        self._did_connect_event = None
 
     async def disconnect(self):
         """Disconnect to device"""
+        if self._did_disconnect_event is None:
+            self._did_disconnect_event = asyncio.Event()
         await self._disconnect()
         await self._did_disconnect_event.wait()
+        self._did_disconnect_event = None
 
     async def is_connected(self):
         """Is Connected to device"""
-        return self._peripheral.state() is CoreBluetooth.CBPeripheralStateConnected
+        return self._cbperipheral.state() is CoreBluetooth.CBPeripheralStateConnected
 
     async def get_properties(self):
         """Get Device Properties"""
@@ -53,11 +67,12 @@ class CoreBluetoothDevice(Device):
 
     async def discover_services(self):
         """Discover Device Services"""
-        if self._services is None:
+        if self._services_by_identifier is None:
             self._discover_services_future = asyncio.Future()
             await self._discover_services()
-            self._services = await self._discover_services_future
-        return self._services
+            cbservices = await self._discover_services_future
+            self._services_by_identifier = {cbservice.UUID().UUIDString(): CoreBluetoothService(self, cbservice, self._queue) for cbservice in cbservices}
+        return self._services_by_identifier.values()
 
     async def read_char(self):
         """Read Service Char"""
@@ -79,7 +94,7 @@ class CoreBluetoothDevice(Device):
 
     @util.dispatched_to_queue(wait=False)
     def _connect(self):
-        self._manager._cbmanager.connectPeripheral_options_(self._peripheral, None)
+        self._cbmanager.connectPeripheral_options_(self._cbperipheral, None)
 
     @util.dispatched_to_loop()
     async def _did_connect(self):
@@ -87,7 +102,7 @@ class CoreBluetoothDevice(Device):
 
     @util.dispatched_to_queue(wait=False)
     def _disconnect(self):
-        self._manager._cbmanager.cancelPeripheralConnection_(self._peripheral)
+        self._cbmanager.cancelPeripheralConnection_(self._cbperipheral)
 
     @util.dispatched_to_loop()
     async def _did_disconnect(self):
@@ -95,14 +110,21 @@ class CoreBluetoothDevice(Device):
 
     @util.dispatched_to_queue(wait=False)
     def _discover_services(self):
-        self._peripheral.discoverServices_(None)
+        self._cbperipheral.discoverServices_(None)
 
     @util.dispatched_to_loop()
     async def _did_discover_services(self, services, error):
-        if services is None:
+        if error is not None:
             self._discover_services_future.set_exception(util.NSErrorException(error))
         else:
             self._discover_services_future.set_result(services)
+
+    @util.dispatched_to_loop()
+    async def _did_discover_characteristics_for_service(self, cbservice : CoreBluetooth.CBService, cbcharacteristics : List[CoreBluetooth.CBCharacteristic], error : Foundation.NSError):
+        service_identifier = cbservice.UUID().UUIDString()
+        service = self._services_by_identifier.get(service_identifier)
+        if service is not None:
+            service._did_discover_characteristics(cbcharacteristics, error)
 
     # CBPeripheralDelegate
 
@@ -125,7 +147,7 @@ class CoreBluetoothDevice(Device):
         pass
 
     def peripheral_didDiscoverCharacteristicsForService_error_(self, peripheral, service, error):
-        pass
+        self._did_discover_characteristics_for_service(service, service.characteristics(), error)
 
     def peripheral_didUpdateValueForCharacteristic_error_(self, peripheral, characteristic, error):
         pass

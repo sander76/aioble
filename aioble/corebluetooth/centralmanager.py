@@ -4,11 +4,11 @@ import asyncio
 import functools
 import libdispatch
 import objc
-import weakref
 
 import aioble.corebluetooth.util as util
 from aioble.centralmanager import CentralManager
-from aioble.corebluetooth.device import CoreBluetoothDevice
+
+CoreBluetoothDevice = None
 
 class CoreBluetoothCentralManager(CentralManager):
     """Concrete implementation of the central manager protocol using CoreBluetooth API"""
@@ -21,6 +21,11 @@ class CoreBluetoothCentralManager(CentralManager):
         self._queue_scan_count = 0
         self._queue_isScanning = False
         self._device_found_callback = None
+
+        # We need to defer the import of CoreBluetoothDevice due to circular dependency
+        from aioble.corebluetooth.device import CoreBluetoothDevice as _device
+        global CoreBluetoothDevice
+        CoreBluetoothDevice = _device
         self.devices = {}
 
     # Public
@@ -65,12 +70,12 @@ class CoreBluetoothCentralManager(CentralManager):
         self._queue_isScanning = self._cbmanager.isScanning()
 
     @util.dispatched_to_loop()
-    async def _notify_device_found(self, peripheral):
+    async def _notify_device_found(self, peripheral : CoreBluetooth.CBPeripheral):
         async with self._lock:
             if self._device_found_callback is not None:
                 device = self.devices.get(peripheral.identifier().UUIDString())
                 if device is None:
-                    device = CoreBluetoothDevice(manager=self, peripheral=peripheral, queue=self._queue)
+                    device = CoreBluetoothDevice(manager=self, cbperipheral=peripheral, queue=self._queue)
                     self.devices[device.identifier] = device
                     if asyncio.iscoroutinefunction(self._device_found_callback):
                         await self._device_found_callback(device)
@@ -78,13 +83,13 @@ class CoreBluetoothCentralManager(CentralManager):
                         self._device_found_callback(device)
 
     @util.dispatched_to_loop()
-    async def _peripheral_did_connect(self, peripheral):
+    async def _peripheral_did_connect(self, peripheral : CoreBluetooth.CBPeripheral):
         device = self.devices.get(peripheral.identifier().UUIDString())
         if device:
             device._did_connect()
 
     @util.dispatched_to_loop()
-    async def _peripheral_did_disconnect(self, peripheral):
+    async def _peripheral_did_disconnect(self, peripheral : CoreBluetooth.CBPeripheral):
         device = self.devices.get(peripheral.identifier().UUIDString())
         if device:
             device._did_disconnect()

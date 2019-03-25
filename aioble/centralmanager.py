@@ -2,7 +2,7 @@ import asyncio
 
 class CentralManager(object):
     """The Central Manager Base Class"""
-    def __init__(self, loop=None):
+    def __init__(self, loop=None, *args, **kwargs):
         self.loop = loop if loop else asyncio.get_event_loop()
 
     async def start_scan(self, callback):
