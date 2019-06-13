@@ -41,8 +41,8 @@ def scan_callback_all(device, device_address, device_name):
 def connect_callback_10():
     print("Connection to Device 10 Succeeded")
 
-def disconnect_callback_10():
-    print("Disconnection From Device 10 Succeeded")
+def disconnect_callback_10(address):
+    print("Disconnection From Device 10 Succeeded, address: {0}".format(address))
 
 def services_resolved_10():
     print("Services Resolved for Device 10")
@@ -50,8 +50,8 @@ def services_resolved_10():
 def connect_callback_5():
     print("Connection to Device 5 Succeeded")
 
-def disconnect_callback_5():
-    print("Disconnection From Device 5 Succeeded")
+def disconnect_callback_5(address):
+    print("Disconnection From Device 5 Succeeded, address: {0}".format(address))
 
 def services_resolved_5():
     print("Services Resolved for Device 5")
@@ -64,7 +64,7 @@ async def connect_one():
         await cm_10.start_scan(scan_callback_10)
 
         while d_10_device is None:
-           await asyncio.sleep(.1)
+            await asyncio.sleep(.1)
 
         await cm_10.stop_scan()
 
@@ -108,7 +108,7 @@ async def connect_one():
         print(f'Connected_10: {is_d_10}')
 
     except Exception as ex:
-        print(f"Failed to Connect: {ex}")
+        print(f"Exception, Failed to Connect: {ex}")
 
 async def connect_two():
     try:
@@ -174,7 +174,7 @@ async def connect_two():
         print(f'Connected_10: {is_d_10} Connected_5: {is_d_5}')
 
     except Exception as ex:
-        print(f"Failed to Connect: {ex}")
+        print(f"Exception, Failed to Connect: {ex}")
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(connect_two())

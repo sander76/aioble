@@ -24,6 +24,8 @@ _WRITE_VALUE_METHOD = 'WriteValue'
 _READ_VALUE_METHOD = 'ReadValue'
 _GET_MANAGED_OBJECTS_METHOD = 'GetManagedObjects'
 
+_device_path_regex_path = re.compile('^/org/bluez/hci0/dev((_[A-Z0-9]{2}){6})$')
+
 class DeviceBlueZDbus(Device):
     """The Device Base Class"""
 
@@ -83,10 +85,13 @@ class DeviceBlueZDbus(Device):
         if self.connect_succeeded != None:
             self.connect_succeeded()
 
-    def _disconnect_succeeded(self):
+    def _disconnect_succeeded(self, path):
         # Call User Callback
         if self.disconnect_succeeded != None:
-            self.disconnect_succeeded()
+            match = _device_path_regex_path.match(path)
+            address = match.group(1)[1:].replace('_', ':').upper()
+            #addres = '/org/bluez/%s/dev_%s' % ('hci0', path.replace(':', '_').upper())
+            self.disconnect_succeeded(address)
 
     def _services_resolved(self):
         # Notify User that Services have been Discovered
@@ -103,7 +108,7 @@ class DeviceBlueZDbus(Device):
                         if list(message.objects)[1]['Connected'][1]:
                             self._connect_succeeded()
                         else:
-                            self._disconnect_succeeded()
+                            self._disconnect_succeeded(message.path)
                     if 'ServicesResolved' in list(message.objects)[1]:
                         if list(message.objects)[1]['ServicesResolved'][1]:
                             pass
