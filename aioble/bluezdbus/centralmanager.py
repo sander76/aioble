@@ -29,6 +29,7 @@ class CentralManagerBlueZDbus(CentralManager):
         self.devices = {}
         self.devices_notified = {}
         self._dbus = None
+        self._cached_devices = {}
 
     async def start_scan(self, callback, service_uuids=[]):
         # Set callback for new devices
@@ -109,28 +110,51 @@ class CentralManagerBlueZDbus(CentralManager):
         for interfaces in reply.all_objects:
             for path in interfaces:
                 if 'org.bluez.Device1' in interfaces[path]:
-                    #Adding New Device
-                    self._add_new_device(path, interfaces[path]["org.bluez.Device1"])
+                    # Store Cached Device
+                    self._cached_devices[path] = interfaces[path]["org.bluez.Device1"]
 
+    def _search_for_uuids(self, path, properties):
+        # Search for service UUIDs in device info
+        for uuids in self.devices[path]["UUIDs"][1]:
+            for s_uuid in self.service_uuids:
+                if s_uuid in uuids:
+                    # Notify user if they haven't been already
+                    self._notify(path, properties)     
+  
     def _add_new_device(self, path, properties):
         """Add New Device Found"""
+        # Add new device
+        self.devices[path] = properties
+
+        # If searching by UUIDs
         if self.service_uuids:
-            self.devices[path] = properties
+            # If Interface was added during this scan
             if "UUIDs" in self.devices[path] and self.devices[path]["UUIDs"][1]:
-                if any(x in self.service_uuids for x in self.devices[path]["UUIDs"][1]):
-                    # Add Address field from dbus path if no Address field exist
-                    self._add_address(path, properties)
+                # Search for service UUIDs in device info
+                self._search_for_uuids(path, properties)
+            # If we don't have UUID information
+            else:
+                # Look if it is in cached devices
+                if path in self._cached_devices:
+                    # Add cached device info to device dict
+                    self.devices[path] = {**self._cached_devices[path], **properties}
 
-                    # Notify user if they haven't been already
-                    self._notify(path, properties)
+                    # Search for service UUIDs in device info
+                    self._search_for_uuids(path, properties)
         else:
-            self.devices[path] = properties
+            # If Interface was added during this scan
+            if "UUIDs" in self.devices[path] and self.devices[path]["UUIDs"][1]:
+                # Notify user if they haven't been already
+                self._notify(path, properties)
+            # If we don't have UUID information
+            else:
+                # Look if it is in cached devices
+                if path in self._cached_devices:
+                    # Add cached device info to device dict
+                    self.devices[path] = {**self._cached_devices[path], **properties}
 
-            # Add Address field from dbus path if no Address field exist
-            self._add_address(path, properties)
-
-            # Notify user if they haven't been already
-            self._notify(path, properties)
+                # Notify user if they haven't been already
+                self._notify(path, properties)
 
 
     def _add_address(self, path, properties):
@@ -144,7 +168,10 @@ class CentralManagerBlueZDbus(CentralManager):
             self.devices[path] = properties
 
     def _notify(self, path, properties):
+        # If client hasn't been notified of new device
         if path not in self.devices_notified:
+            # Add Address field from dbus path if no Address field exist
+            self._add_address(path, properties)
             # Call Callback with new devices found
             if "Address" in self.devices[path] and "Alias" in self.devices[path]:
                 self._device_found_callback(path, self.devices[path]["Address"][1], self.devices[path]["Alias"][1])

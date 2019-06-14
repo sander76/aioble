@@ -10,6 +10,7 @@ async def scan():
         print('Scanning for BLE devices...')
         print('Starting')
         await cm.start_scan(callback)
+        #await cm.start_scan(callback, service_uuids=["fe59"])
         await asyncio.sleep(5)
         print('Stopping')
         await cm.stop_scan()
