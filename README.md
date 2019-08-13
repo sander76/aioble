@@ -11,11 +11,11 @@
 ```
 python setup.py install
 ```
-## Use
-You must call disconnect, even if a connection was not successful, in order to cleanup dbus related resources.
 
 ## Linux  
 Supports Linux distributions with BlueZ >= 5.45
+#### Note
+You must call disconnect, even if a connection was not successful, in order to cleanup dbus related resources.
 ## Mac OS  
 Supports macOS
 ## Windows  
