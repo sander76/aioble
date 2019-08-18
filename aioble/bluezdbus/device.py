@@ -14,6 +14,7 @@ _BLUEZ_OBJECT_PATH = '/org/bluez/hci0'
 
 _DEVICE_INTERFACE = 'org.bluez.Device1'
 _GATT_CHARACTERISTIC_INTERFACE = 'org.bluez.GattCharacteristic1'
+_GATT_DESCRIPTOR_INTERFACE = 'org.bluez.GattDescriptor1'
 _DBUS_OBJECT_MANAGER_INTERFACE = 'org.freedesktop.DBus.ObjectManager'
 
 _CONNECT_METHOD = 'Connect'
@@ -344,3 +345,34 @@ class DeviceBlueZDbus(Device):
         for propname in sorted(values.keys()) :
             proptype, propvalue = values[propname]
             sys.stdout.write("%s(%s) = %s\n" % (propname, proptype, repr(propvalue)))
+
+    async def read_descriptor(self, uuid):
+        """Read Characteristic Descriptor"""
+
+        descriptor_path = ""
+
+        for s in self.services:
+            for c in s.characteristics:
+                if uuid == c.uuid:
+                    for d in c.descriptors:
+                        descriptor_path = d.path
+
+        try:
+            # Assemble Read Value Method Message
+            message = dbus.Message.new_method_call \
+            (
+                destination = dbus.valid_bus_name(_BLUEZ_DESTINATION),
+                path = dbus.valid_path(descriptor_path),
+                iface = _GATT_DESCRIPTOR_INTERFACE,
+                method = _READ_VALUE_METHOD
+            )
+            message.append_objects("a{sv}", {})
+        except Exception as ex:
+            print("Exception, No Descriptor found for this Characteristic") 
+
+        try:
+            reply = await self._dbus.send_await_reply(message)
+            values = reply.expect_return_objects("ay")[0]
+            return values
+        except:
+            return []

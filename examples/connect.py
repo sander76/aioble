@@ -3,9 +3,13 @@ from aioble import Device
 from aioble import CentralManager
 
 TEST_ADDRESS_10 = 'D7:D1:17:78:FB:D0'
+TEST_ADDRESS_12 = '77:6C:8E:86:6B:5A'
+
 TEST_ADDRESS_5 = 'D4:D2:34:E3:BC:C5'
 TEST_NOTIFY_CHARACTERISTIC = "ee840202-43b7-4f65-9fb9-d7b92d683e36"
 TEST_WRITE_CHARACTERISTIC = "ee840203-43b7-4f65-9fb9-d7b92d683e36"
+
+TEST_READ_CHAR = '00002902-0000-1000-8000-00805f9b34fb'
 
 TIMEOUT_SEC = 5
 
@@ -90,13 +94,13 @@ async def connect_one():
         print('Writing Char')
         await d_10.write_char(TEST_WRITE_CHARACTERISTIC, WRITE_CHAR_TEST)
 
-        print('Reading Char')
-        print(await d_10.read_char(TEST_WRITE_CHARACTERISTIC))
+        print('Reading Descriptor')
+        await d_10.read_descriptor(TEST_WRITE_CHARACTERISTIC)
 
         print('Starting Notify')
         await d_10.start_notify(TEST_NOTIFY_CHARACTERISTIC, notify_callback_10)
 
-        await asyncio.sleep(5)
+        await asyncio.sleep(2)
 
         print('Stopping Notify')
         await d_10.stop_notify(TEST_NOTIFY_CHARACTERISTIC)
@@ -177,4 +181,4 @@ async def connect_two():
         print(f"Exception, Failed to Connect: {ex}")
 
 loop = asyncio.get_event_loop()
-loop.run_until_complete(connect_two())
+loop.run_until_complete(connect_one())

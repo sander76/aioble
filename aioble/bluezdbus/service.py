@@ -7,7 +7,6 @@ from dbussy import \
     DBUS
 
 _BLUEZ_DESTINATION = 'org.bluez'
-_GATT_CHARACTERISTIC_INTERFACE = 'org.bluez.GattCharacteristic1'
 _DBUS_OBJECT_MANAGER_INTERFACE = 'org.freedesktop.DBus.ObjectManager'
 _GET_MANAGED_OBJECTS_METHOD = 'GetManagedObjects'
 
@@ -45,6 +44,5 @@ class ServiceBlueZDbus(Service):
             uuid=objvalue['org.bluez.GattCharacteristic1']['UUID'][1]) for objpath, objvalue in values.items() if
             characteristics_regex.match(objpath)]
 
-        # for char in self.characteristics:
-        #     print(char.uuid)
-        #     print(char.path)
+        for char in self.characteristics:
+            await char.resolve_descriptors()
