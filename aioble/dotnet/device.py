@@ -19,11 +19,11 @@ from Windows.Foundation import TypedEventHandler
 
 class DeviceDotNet(Device):
     """The Device Base Class"""
-    def __init__(self, identifier, loop=None):
+    def __init__(self, address, loop=None):
         super(DeviceDotNet, self).__init__(loop)
         self.loop = loop if loop else asyncio.get_event_loop()
-        self.address = hex(identifier)
-        self.identifier = identifier
+        self.address_hex = hex(address)
+        self.address = address
         self.properties = None
         #UWP .NET
         self._dotnet_task = None
@@ -31,10 +31,9 @@ class DeviceDotNet(Device):
         self._devices = {}
         self.services_resolved = None
         self.is_services_resolved = False
-
-    @property
-    def identifier(self):
-        return self._identifier
+        self.connect_succeeded = None
+        self.disconnect_succeeded = None
+        self.services_resolved = None
 
     @property
     def name(self):
@@ -45,7 +44,7 @@ class DeviceDotNet(Device):
 
         # Initiate Connection
         self._dotnet_task = await wrap_dotnet_task(
-            self._uwp_bluetooth.FromBluetoothAddressAsync(self.identifier),
+            self._uwp_bluetooth.FromBluetoothAddressAsync(self.address),
             loop=self.loop,
         )
 
@@ -90,10 +89,10 @@ class DeviceDotNet(Device):
                 self._uwp_bluetooth.GetGattServicesAsync(self._dotnet_task), loop=self.loop
             )
             if services.Status == GattCommunicationStatus.Success:
-                self.services = {s.Uuid.ToString(): Service(
+                self.services = [Service(
                     device=s.Device,
                     uuid=s.Uuid.ToString(),
-                    s_object=s) for s in services.Services}
+                    s_object=s) for s in services.Services]
             else:
                 raise Exception("Could not get GATT services.")
 
@@ -101,7 +100,7 @@ class DeviceDotNet(Device):
             await asyncio.gather(
                 *[
                     asyncio.ensure_future(service.discover_characteristics(), loop=self.loop)
-                    for service_uuid, service in self.services.items()
+                    for service in self.services
                 ]
             )
             self._services_resolved()
@@ -200,6 +199,36 @@ class DeviceDotNet(Device):
                 characteristic.Uuid.ToString(),
                 status,
             )
+
+    async def read_descriptor(self, uuid):
+        """Read Characteristic Descriptor"""
+        for s_uuid, s in self.services.items():
+            for c_uuid, c in s.characteristics.items():
+                if str(uuid) == c_uuid:
+                    characteristic = c.c_object
+
+        if not characteristic:
+            raise Exception("Characteristic {0} was not found!".format(uuid))
+
+        read_results = await wrap_dotnet_task(
+            self._uwp_bluetooth.ReadDescriptorValueAsync(characteristic), loop=self.loop
+        )
+        if read_results.Item2:
+            status, value = read_results.Item1, bytearray(read_results.Item2)
+            if status == GattCommunicationStatus.Success:
+                #print("Read Characteristic {0} : {1}".format(uuid, value))
+                pass
+            else:
+                raise Exception(
+                    "Could not read descriptor value for {0}: {1}",
+                    characteristic.Uuid.ToString(),
+                    status,
+                )
+        else:
+            return None
+
+        return list(value)
+
 
 def _notification_wrapper(func: Callable):
     @wraps(func)

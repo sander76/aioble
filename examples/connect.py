@@ -95,7 +95,7 @@ async def connect_one():
         await d_10.write_char(TEST_WRITE_CHARACTERISTIC, WRITE_CHAR_TEST)
 
         print('Reading Descriptor')
-        await d_10.read_descriptor(TEST_WRITE_CHARACTERISTIC)
+        print(await d_10.read_descriptor(TEST_NOTIFY_CHARACTERISTIC))
 
         print('Starting Notify')
         await d_10.start_notify(TEST_NOTIFY_CHARACTERISTIC, notify_callback_10)

@@ -14,7 +14,7 @@ class ServiceDotNet(Service):
         self.device = device
         self.s_object = s_object
         self.uuid = uuid
-        self.characteristics = {}
+        self.characteristics = [] 
         self._dotnet_task = None
         self._uwp_bluetooth = UWPBluetooth()
 
@@ -31,5 +31,7 @@ class ServiceDotNet(Service):
                 char_results.Status,
             )
         else:
-            for characteristic in char_results.Characteristics:
-                self.characteristics[characteristic.Uuid.ToString()] = Characteristic(self, characteristic)
+            self.characteristics = [Characteristic(self, characteristic) for characteristic in char_results.Characteristics]
+        
+        for characteristic in self.characteristics:
+            await characteristic.discover_descriptors()
