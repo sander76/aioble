@@ -47,6 +47,7 @@ class CoreBluetoothService(Service):
         self._cbservice.peripheral().discoverCharacteristics_forService_(None, self._cbservice)
 
     def _did_discover_characteristics(self, characteristics : List[CoreBluetooth.CBCharacteristic], error : Foundation.NSError):
+        print("char woah")
         if error is not None:
             self._discover_characteristics_future.set_exception(util.NSErrorException(error))
         else:

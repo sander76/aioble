@@ -26,6 +26,7 @@ class CoreBluetoothDevice(Device):
         global CoreBluetoothService
         CoreBluetoothService = _service
         self._services_by_identifier = None
+        self._characteristics_by_identifier = None
 
         self._did_connect_event = None
         self._did_disconnect_event = None
@@ -142,6 +143,17 @@ class CoreBluetoothDevice(Device):
             return
 
         char._did_update_value(error)
+    
+    @util.dispatched_to_loop()
+    async def _did_discover_descriptors_for_characteristic(self, cbcharacteristic : CoreBluetooth.CBCharacteristic, cbdescriptors : List[CoreBluetooth.CBDescriptor], error : Foundation.NSError):
+        characteristic_identifier = cbcharacteristic.UUID().UUIDString()
+        print(characteristic_identifier)
+        print("above")
+        characteristic = self._characteristics_by_identifier.get(characteristic_identifier)
+        print("below")
+        print(characteristic)
+        if characteristic is not None:
+            characteristic._did_discover_descriptors(cbdescriptors, error)
 
     # CBPeripheralDelegate
 
@@ -176,7 +188,8 @@ class CoreBluetoothDevice(Device):
         pass
 
     def peripheral_didDiscoverDescriptorsForCharacteristic_error_(self, peripheral, characteristic, error):
-        pass
+        print("FOUND DESCRIPTOR")
+        self._did_discover_descriptors_for_characteristic(characteristic, characteristic.descriptors(), error)
 
     def peripheral_didUpdateValueForDescriptor_error_(self, peripheral, descriptor, error):
         pass

@@ -1,6 +1,7 @@
 import CoreBluetooth
 import Foundation
 import asyncio
+from typing import List
 
 import aioble.corebluetooth.util as util
 from aioble.characteristic import Characteristic
@@ -17,10 +18,37 @@ class CoreBluetoothCharacteristic(Characteristic):
         self._identifier = cbcharacteristic.UUID().UUIDString()
 
         self.read_value_future = None
+        self._discover_descriptors_future = None
+        self._descriptors_by_identifier = None 
 
-    @property
+    @property 
     def identifier(self):
         return self._identifier
+
+    async def discover_descriptors(self):
+        if self._descriptors_by_identifier is None:
+            self._discover_descriptors_future = asyncio.Future()
+            await self._discover_descriptors()
+            print("here woah")
+            cbdescriptors = await self._discover_descriptors_future
+            print("here yeah")
+            for cbdesc in cbdescriptors:
+                print("uuid: ")
+                print(cbdesc.UUID().UUIDString())
+                self._descriptors_by_identifier = {cbdesc.UUID().UUIDString(): cbdesc}
+            print("got here")
+        return self._descriptors_by_identifier.values()
+
+    @util.dispatched_to_queue(wait=False)
+    def _discover_descriptors(self):
+        self._cbperipheral.discoverDescriptorsForCharacteristic_(self._cbcharacteristic)
+    
+    def _did_discover_descriptors(self, descriptors: List[CoreBluetooth.CBDescriptor], error : Foundation.NSError):
+        print("future")
+        if error is not None:
+            self._discover_descriptors_future.set_exception(util.NSErrorException(error))
+        else:
+            self._discover_descriptors_future.set_result(descriptors)
 
     async def read_value(self):
         if self._cbcharacteristic.properties() & CoreBluetooth.CBCharacteristicPropertyRead:
