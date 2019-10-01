@@ -7,6 +7,7 @@ setup(name='aioble',
       author='detect labs',
       author_email='code@detectlabs.io',
       url='https://github.com/detectlabs/aioble',
+      download_url = 'https://github.com/detectlabs/aioble/archive/v0.0.1.tar.gz',
       packages=find_packages(exclude=('examples')),
       package_data={
           'aioble.dotnet': ['*.dll', ]
