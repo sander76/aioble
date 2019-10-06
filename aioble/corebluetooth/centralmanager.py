@@ -16,11 +16,11 @@ class CoreBluetoothCentralManager(CentralManager):
     def __init__(self, loop=None, *args, **kwargs):
         super(CoreBluetoothCentralManager, self).__init__(loop, *args, **kwargs)
         self._lock = asyncio.Lock()
-        self._queue = libdispatch.dispatch_queue_create(b'CoreBluetooth Queue', libdispatch.DISPATCH_QUEUE_SERIAL)
-        self._cbmanager = CoreBluetooth.CBCentralManager.alloc().initWithDelegate_queue_options_(self, self._queue, None)
         self._queue_scan_count = 0
         self._queue_isScanning = False
         self._device_found_callback = None
+        self._queue = libdispatch.dispatch_queue_create(b'CoreBluetooth Queue', libdispatch.DISPATCH_QUEUE_SERIAL)
+        self._cbmanager = CoreBluetooth.CBCentralManager.alloc().initWithDelegate_queue_options_(self, self._queue, None)
 
         # We need to defer the import of CoreBluetoothDevice due to circular dependency
         from aioble.corebluetooth.device import CoreBluetoothDevice as _device
@@ -59,15 +59,17 @@ class CoreBluetoothCentralManager(CentralManager):
     def _update_scan_state_if_needed(self):
         self._queue_update_scan_state_if_needed()
 
-    def _queue_update_scan_state_if_needed(self):
-        if self._cbmanager.state() is not CoreBluetooth.CBManagerStatePoweredOn:
+    def _queue_update_scan_state_if_needed(self, cbmanager = None):
+        if cbmanager is None:
+            cbmanager = self._cbmanager
+        if cbmanager.state() is not CoreBluetooth.CBManagerStatePoweredOn:
             return
-        isScanning = self._cbmanager.isScanning()
+        isScanning = cbmanager.isScanning()
         if self._queue_scan_count > 0 and not isScanning:
-            self._cbmanager.scanForPeripheralsWithServices_options_(None, None)
+            cbmanager.scanForPeripheralsWithServices_options_(None, None)
         elif self._queue_scan_count == 0 and isScanning:
-            self._cbmanager.stopScan()
-        self._queue_isScanning = self._cbmanager.isScanning()
+            cbmanager.stopScan()
+        self._queue_isScanning = cbmanager.isScanning()
 
     @util.dispatched_to_loop()
     async def _notify_device_found(self, peripheral : CoreBluetooth.CBPeripheral):
@@ -97,7 +99,7 @@ class CoreBluetoothCentralManager(CentralManager):
     # CBCentralManagerDelegate
 
     def centralManagerDidUpdateState_(self, manager):
-        self._queue_update_scan_state_if_needed()
+        self._queue_update_scan_state_if_needed(cbmanager = manager)
 
     def centralManager_didDiscoverPeripheral_advertisementData_RSSI_(self, manager, peripheral, data, rssi):
         self._notify_device_found(peripheral)
