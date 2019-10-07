@@ -42,6 +42,12 @@ class CoreBluetoothCentralManager(CentralManager):
             self._device_found_callback = None
             await self._decrement_scan_count()
 
+    async def power_on(self):
+        pass
+
+    async def power_off(self):
+        pass
+
     # Private
 
     @util.dispatched_to_queue()
