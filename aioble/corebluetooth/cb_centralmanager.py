@@ -23,7 +23,7 @@ class CoreBluetoothCentralManager(CentralManager):
         self._cbmanager = CoreBluetooth.CBCentralManager.alloc().initWithDelegate_queue_options_(self, self._queue, None)
 
         # We need to defer the import of CoreBluetoothDevice due to circular dependency
-        from aioble.corebluetooth.device import CoreBluetoothDevice as _device
+        from aioble.corebluetooth.cb_device import CoreBluetoothDevice as _device
         global CoreBluetoothDevice
         CoreBluetoothDevice = _device
         self.devices = {}

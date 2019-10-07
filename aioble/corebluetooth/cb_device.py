@@ -6,7 +6,7 @@ from typing import List
 
 import aioble.corebluetooth.util as util
 from aioble.device import Device
-from aioble.corebluetooth.centralmanager import CoreBluetoothCentralManager
+from aioble.corebluetooth.cb_centralmanager import CoreBluetoothCentralManager
 
 CoreBluetoothService = None
 

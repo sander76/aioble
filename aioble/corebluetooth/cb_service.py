@@ -4,7 +4,7 @@ import asyncio
 from typing import List
 
 from aioble.service import Service
-from aioble.corebluetooth.device import CoreBluetoothDevice
+from aioble.corebluetooth.cb_device import CoreBluetoothDevice
 import aioble.corebluetooth.util as util
 
 CoreBluetoothCharacteristic = None
