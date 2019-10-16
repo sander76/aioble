@@ -6,7 +6,7 @@ import dbussy as dbus
 from dbussy import \
     DBUS
 
-from aioble.bluezdbus.service import ServiceBlueZDbus as Service
+from aioble.bluezdbus.bd_service import ServiceBlueZDbus as Service
 
 _BLUEZ_DESTINATION = 'org.bluez'
 
