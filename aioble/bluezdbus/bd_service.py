@@ -1,7 +1,7 @@
 import asyncio
 import re
 from aioble.service import Service
-from aioble.bluezdbus.characteristic import CharacteristicBlueZDbus as Characteristic
+from aioble.bluezdbus.bd_characteristic import CharacteristicBlueZDbus as Characteristic
 import dbussy as dbus
 from dbussy import \
     DBUS
