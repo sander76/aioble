@@ -1,5 +1,6 @@
 from aioble.centralmanager import CentralManager
 
+from UWPBluetoothPython import UWPBluetooth
 from Windows.Devices.Bluetooth.Advertisement import BluetoothLEAdvertisementWatcher
 
 class CentralManagerDotNet(CentralManager):
