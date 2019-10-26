@@ -107,9 +107,9 @@ class DeviceDotNet(Device):
 
     async def read_char(self, uuid):
         """Read Service Char"""
-        for s_uuid, s in self.services.items():
-            for c_uuid, c in s.characteristics.items():
-                if str(uuid) == c_uuid:
+        for s in self.services:
+            for c in s.characteristics:
+                if str(uuid) == c.uuid:
                     characteristic = c.c_object
 
         if not characteristic:
@@ -133,9 +133,9 @@ class DeviceDotNet(Device):
 
     async def write_char(self, uuid, data, response=False):
         """Write Service Char"""
-        for s_uuid, s in self.services.items():
-            for c_uuid, c in s.characteristics.items():
-                if str(uuid) == c_uuid:
+        for s in self.services:
+            for c in s.characteristics:
+                if str(uuid) == c.uuid:
                     characteristic = c.c_object
 
         if not characteristic:
@@ -161,9 +161,9 @@ class DeviceDotNet(Device):
     async def start_notify(self, uuid, callback: Callable[[str, Any], Any], **kwargs):
         """Start Notification Subscription"""
         # Find the Characteristic object
-        for s_uuid, s in self.services.items():
-            for c_uuid, c in s.characteristics.items():
-                if str(uuid) == c_uuid:
+        for s in self.services:
+            for c in s.characteristics:
+                if str(uuid) == c.uuid:
                     characteristic = c.c_object
 
         if self._notification_callbacks.get(str(uuid)):
@@ -185,9 +185,9 @@ class DeviceDotNet(Device):
     async def stop_notify(self, uuid):
         """Stop Notification Subscription"""
         # Find the Characteristic object
-        for s_uuid, s in self.services.items():
-            for c_uuid, c in s.characteristics.items():
-                if str(uuid) == c_uuid:
+        for s in self.services:
+            for c in s.characteristics:
+                if str(uuid) == c.uuid:
                     characteristic = c.c_object
         # THIS IS NOT CURRENTLY STOPPING NOTIFICATION IMMEDIATELY
         status = await wrap_dotnet_task(
@@ -202,9 +202,9 @@ class DeviceDotNet(Device):
 
     async def read_descriptor(self, uuid):
         """Read Characteristic Descriptor"""
-        for s_uuid, s in self.services.items():
-            for c_uuid, c in s.characteristics.items():
-                if str(uuid) == c_uuid:
+        for s in self.services:
+            for c in s.characteristics:
+                if str(uuid) == c.uuid:
                     characteristic = c.c_object
 
         if not characteristic:
