@@ -1,10 +1,14 @@
 import platform
 
 if platform.system() == "Linux":
-    from aioble.bluezdbus.bd_centralmanager import CentralManagerBlueZDbus as CentralManager
+    from aioble.bluezdbus.bd_centralmanager import (
+        CentralManagerBlueZDbus as CentralManager,
+    )
     from aioble.bluezdbus.bd_device import DeviceBlueZDbus as Device
 elif platform.system() == "Darwin":
-    from aioble.corebluetooth.cb_centralmanager import CoreBluetoothCentralManager as CentralManager
+    from aioble.corebluetooth.cb_centralmanager import (
+        CoreBluetoothCentralManager as CentralManager,
+    )
     from aioble.corebluetooth.cb_device import CoreBluetoothDevice as Device
 elif platform.system() == "Windows":
     from aioble.dotnet.centralmanager import CentralManagerDotNet as CentralManager

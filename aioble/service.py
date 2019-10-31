@@ -1,5 +1,6 @@
 class Service(object):
     """The Service Base Class"""
+
     def __init__(self, device, *args, **kwargs):
         self.device = device
 

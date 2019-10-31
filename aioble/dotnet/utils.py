@@ -4,6 +4,7 @@ from collections import Awaitable
 from System import Action
 from System.Threading.Tasks import Task
 
+
 async def wrap_dotnet_task(task, loop):
     done = asyncio.Event()
     task.ContinueWith(Action[Task](lambda x: loop.call_soon_threadsafe(done.set)))
