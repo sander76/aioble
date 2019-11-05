@@ -1,4 +1,4 @@
-from aioble.corebluetooth.cb_centralmanager import CoreBluetoothCentralManager
+from aioble.bluezdbus.bd_centralmanager import CentralManagerBlueZDbus
 import asyncio
 import pytest
 import unittest.mock
@@ -12,8 +12,8 @@ sys.modules["objc"] = unittest.mock.MagicMock()
 pytestmark = pytest.mark.asyncio
 
 
-async def test_cb_centralmanager_initialization(
+async def test_centralmanager_initialization(
     event_loop: asyncio.AbstractEventLoop,
 ):
-    manager = CoreBluetoothCentralManager()
+    manager = CentralManagerBlueZDbus()
     assert manager is not None

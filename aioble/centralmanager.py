@@ -1,8 +1,10 @@
 import abc
 import asyncio
 
+
 class CentralManager(abc.ABC):
     """The Central Manager Base Class"""
+
     def __init__(self, loop=None, *args, **kwargs):
         self.loop = loop if loop else asyncio.get_event_loop()
 
@@ -25,4 +27,3 @@ class CentralManager(abc.ABC):
     async def power_off(self):
         """Power off BLE Adapter"""
         raise NotImplementedError()
-

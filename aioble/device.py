@@ -2,8 +2,10 @@ import asyncio
 
 from aioble.centralmanager import CentralManager
 
+
 class Device(object):
     """The Device Base Class"""
+
     def __init__(self, manager: CentralManager, loop=None, *args, **kwargs):
         self.manager = manager
         self.loop = loop if loop else asyncio.get_event_loop()

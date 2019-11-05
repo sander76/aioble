@@ -1,7 +1,8 @@
 class Descriptor(object):
     """The Descriptor Base Class"""
+
     def __init__(self, characteristic, *args, **kwargs):
-        self.characteristic = characteristic 
+        self.characteristic = characteristic
 
     def __repr__(self):
         return self.__str__()
