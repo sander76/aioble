@@ -251,6 +251,6 @@ class DeviceDotNet(Device):
 def _notification_wrapper(func: Callable):
     @wraps(func)
     def dotnet_notification_parser(sender: Any, data: Any):
-        return func(sender.Uuid.ToString(), bytearray(data))
+        return func(sender.Uuid.ToString(), list(data))
 
     return dotnet_notification_parser

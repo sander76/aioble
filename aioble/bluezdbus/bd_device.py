@@ -398,7 +398,11 @@ class DeviceBlueZDbus(Device):
             )
             message.append_objects("a{sv}", {})
         except Exception as ex:
-            print("Exception, No Descriptor found for this Characteristic: {}".format(ex))
+            print(
+                "Exception, No Descriptor found for this Characteristic: {}".format(
+                    ex
+                )
+            )
 
         try:
             reply = await self._dbus.send_await_reply(message)

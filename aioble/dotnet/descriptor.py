@@ -23,7 +23,9 @@ class DescriptorDotNet(Descriptor):
         """Read Characteristic Descriptor"""
         # print("Get Characteristics for {0}...".format(self.s_object.Uuid.ToString()))
         if not self.characteristic:
-            raise Exception("Characteristic {0} was not found!".format(self.uuid))
+            raise Exception(
+                "Characteristic {0} was not found!".format(self.uuid)
+            )
 
         read_results = await wrap_dotnet_task(
             self._uwp_bluetooth.ReadDescriptorValueAsync(
