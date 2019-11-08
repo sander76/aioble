@@ -1,7 +1,7 @@
 import asyncio
 from aioble.characteristic import Characteristic
-from aioble.dotnet.descriptor import DescriptorDotNet as Descriptor
-from aioble.dotnet.utils import wrap_dotnet_task
+from aioble.dotnet.dn_descriptor import DescriptorDotNet as Descriptor
+from aioble.dotnet.dn_utils import wrap_dotnet_task
 
 from Windows.Devices.Bluetooth.GenericAttributeProfile import (
     GattCommunicationStatus,

@@ -11,10 +11,10 @@ elif platform.system() == "Darwin":
     )
     from aioble.corebluetooth.cb_device import CoreBluetoothDevice as Device
 elif platform.system() == "Windows":
-    from aioble.dotnet.centralmanager import (
+    from aioble.dotnet.dn_centralmanager import (
         CentralManagerDotNet as CentralManager,
     )
-    from aioble.dotnet.device import DeviceDotNet as Device
+    from aioble.dotnet.dn_device import DeviceDotNet as Device
 else:
     from aioble.centralmanager import CentralManager
     from aioble.device import Device

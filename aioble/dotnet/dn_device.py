@@ -1,8 +1,8 @@
 import asyncio
 from aioble.device import Device
 
-from aioble.dotnet.utils import wrap_dotnet_task
-from aioble.dotnet.service import ServiceDotNet as Service
+from aioble.dotnet.dn_utils import wrap_dotnet_task
+from aioble.dotnet.dn_service import ServiceDotNet as Service
 
 from functools import wraps
 from typing import Callable, Any
